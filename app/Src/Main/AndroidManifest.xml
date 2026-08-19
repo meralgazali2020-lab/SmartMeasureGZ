@@ -11,6 +11,10 @@
         android:theme="@style/Theme.SmartMeasureGZ">
 
         <activity
+            android:name=".CalculatorActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
 
