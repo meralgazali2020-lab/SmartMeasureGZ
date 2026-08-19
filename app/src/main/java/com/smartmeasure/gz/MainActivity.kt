@@ -13,48 +13,58 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        b = ActivityMainBinding.inflate(layoutInflater)
+        b =
+            ActivityMainBinding.inflate(
+                layoutInflater
+            )
+
         setContentView(b.root)
 
         b.calculatorBtn.setOnClickListener {
 
-            val intent =
+            startActivity(
                 Intent(
                     this,
                     CalculatorActivity::class.java
                 )
-
-            startActivity(intent)
-        }
-
-        b.newProjectBtn.setOnClickListener {
-            Toast.makeText(
-                this,
-                "إنشاء مشروع جديد",
-                Toast.LENGTH_SHORT
-            ).show()
+            )
         }
 
         b.scanMeasurementsBtn.setOnClickListener {
-            Toast.makeText(
-                this,
-                "تصوير ورقة المقاسات",
-                Toast.LENGTH_SHORT
-            ).show()
+
+            startActivity(
+                Intent(
+                    this,
+                    ScanMeasurementsActivity::class.java
+                )
+            )
         }
 
         b.savedProjectsBtn.setOnClickListener {
-            Toast.makeText(
-                this,
-                "المشاريع والمقاسات المحفوظة",
-                Toast.LENGTH_SHORT
-            ).show()
+
+            startActivity(
+                Intent(
+                    this,
+                    SavedProjectsActivity::class.java
+                )
+            )
+        }
+
+        b.newProjectBtn.setOnClickListener {
+
+            startActivity(
+                Intent(
+                    this,
+                    ScanMeasurementsActivity::class.java
+                )
+            )
         }
 
         b.notesBtn.setOnClickListener {
+
             Toast.makeText(
                 this,
-                "الملاحظات",
+                "سنضيف دفتر الملاحظات في الخطوة التالية",
                 Toast.LENGTH_SHORT
             ).show()
         }
