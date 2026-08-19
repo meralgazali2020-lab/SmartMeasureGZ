@@ -34,26 +34,16 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             TextRecognizerOptions.DEFAULT_OPTIONS
         )
 
-    // =====================================================
-    // اختيار صورة من المعرض
-    // =====================================================
-
     private val imagePicker =
         registerForActivityResult(
             ActivityResultContracts.GetContent()
         ) { uri ->
 
             if (uri != null) {
-
                 b.previewImage.setImageURI(uri)
-
                 readImageFromUri(uri)
             }
         }
-
-    // =====================================================
-    // التقاط صورة بالكاميرا
-    // =====================================================
 
     private val cameraLauncher =
         registerForActivityResult(
@@ -61,16 +51,10 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         ) { bitmap ->
 
             if (bitmap != null) {
-
                 b.previewImage.setImageBitmap(bitmap)
-
                 readImageFromBitmap(bitmap)
             }
         }
-
-    // =====================================================
-    // طلب صلاحية الكاميرا
-    // =====================================================
 
     private val cameraPermissionLauncher =
         registerForActivityResult(
@@ -78,22 +62,15 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         ) { granted ->
 
             if (granted) {
-
                 cameraLauncher.launch(null)
-
             } else {
-
                 Toast.makeText(
                     this,
-                    "يجب السماح باستخدام الكاميرا لتصوير ورقة المقاسات",
+                    "يجب السماح باستخدام الكاميرا",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
-
-    // =====================================================
-    // بدء الشاشة
-    // =====================================================
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -110,31 +87,24 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         setupButtons()
     }
 
-    // =====================================================
-    // الأزرار
-    // =====================================================
-
     private fun setupButtons() {
 
         b.selectImageBtn.setOnClickListener {
-
             showImageSourceDialog()
         }
 
         b.applyAllBtn.setOnClickListener {
-
             applyAdjustmentToAll()
         }
 
         b.resetAdjustmentBtn.setOnClickListener {
-
             resetAdjustments()
         }
-    }
 
-    // =====================================================
-    // اختيار كاميرا أو معرض
-    // =====================================================
+        b.saveProjectBtn.setOnClickListener {
+            saveProject()
+        }
+    }
 
     private fun showImageSourceDialog() {
 
@@ -145,12 +115,8 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             )
 
         AlertDialog.Builder(this)
-            .setTitle(
-                "قراءة ورقة المقاسات"
-            )
-            .setItems(
-                options
-            ) { _, which ->
+            .setTitle("قراءة ورقة المقاسات")
+            .setItems(options) { _, which ->
 
                 when (which) {
 
@@ -170,10 +136,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             .show()
     }
 
-    // =====================================================
-    // فتح الكاميرا
-    // =====================================================
-
     private fun openCamera() {
 
         if (
@@ -183,20 +145,13 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             ) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-
             cameraLauncher.launch(null)
-
         } else {
-
             cameraPermissionLauncher.launch(
                 Manifest.permission.CAMERA
             )
         }
     }
-
-    // =====================================================
-    // قراءة صورة من المعرض
-    // =====================================================
 
     private fun readImageFromUri(
         uri: Uri
@@ -216,18 +171,8 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             b.statusText.text =
                 "حدث خطأ أثناء فتح الصورة"
-
-            Toast.makeText(
-                this,
-                "تعذر فتح الصورة",
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
-
-    // =====================================================
-    // قراءة صورة الكاميرا
-    // =====================================================
 
     private fun readImageFromBitmap(
         bitmap: Bitmap
@@ -241,10 +186,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         processImage(image)
     }
-
-    // =====================================================
-    // إرسال الصورة إلى قارئ النص
-    // =====================================================
 
     private fun processImage(
         image: InputImage
@@ -271,15 +212,11 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this,
-                    "تأكد من وضوح الورقة والإضاءة ثم حاول مرة أخرى",
+                    "تأكد من وضوح الصورة وحاول مرة أخرى",
                     Toast.LENGTH_LONG
                 ).show()
             }
     }
-
-    // =====================================================
-    // تحليل النص واستخراج المقاسات
-    // =====================================================
 
     private fun parseMeasurements(
         rawText: String
@@ -296,7 +233,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             normalized.lines()
 
         for (line in lines) {
-
             parseLine(line)
         }
 
@@ -316,10 +252,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         renderTables()
     }
 
-    // =====================================================
-    // قراءة سطر واحد
-    // =====================================================
-
     private fun parseLine(
         originalLine: String
     ) {
@@ -336,15 +268,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 Regex("\\s+"),
                 " "
             )
-
-        /*
-         أمثلة:
-
-         120x80
-         120 x 80
-         120 × 80
-         120x80 عدد 2
-        */
 
         val pattern =
             Regex(
@@ -387,7 +310,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             width <= 0 ||
             quantity <= 0
         ) {
-
             return
         }
 
@@ -400,10 +322,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             )
         )
     }
-
-    // =====================================================
-    // تحويل الأرقام العربية إلى إنجليزية
-    // =====================================================
 
     private fun normalizeNumbers(
         text: String
@@ -432,10 +350,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             .replace('۹', '9')
             .replace('٫', '.')
     }
-
-    // =====================================================
-    // تطبيق زيادة أو تنقيص على جميع مقاسات الورقة
-    // =====================================================
 
     private fun applyAdjustmentToAll() {
 
@@ -508,14 +422,10 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         Toast.makeText(
             this,
-            "تم تطبيق التعديل على جميع مقاسات الورقة",
+            "تم تطبيق التعديل على جميع المقاسات",
             Toast.LENGTH_SHORT
         ).show()
     }
-
-    // =====================================================
-    // إرجاع المقاسات الأصلية
-    // =====================================================
 
     private fun resetAdjustments() {
 
@@ -529,7 +439,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         b.lengthAdjustmentInput.text?.clear()
-
         b.widthAdjustmentInput.text?.clear()
 
         b.subtractRadio.isChecked =
@@ -538,23 +447,155 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         renderTables()
     }
 
-    // =====================================================
-    // رسم الجدولين
-    // =====================================================
+    private fun saveProject() {
+
+        val projectName =
+            b.projectNameInput.text
+                .toString()
+                .trim()
+
+        val customerName =
+            b.customerNameInput.text
+                .toString()
+                .trim()
+
+        val notes =
+            b.notesInput.text
+                .toString()
+                .trim()
+
+        if (projectName.isBlank()) {
+
+            Toast.makeText(
+                this,
+                "اكتب اسم المشروع أولًا",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        if (measurements.isEmpty()) {
+
+            Toast.makeText(
+                this,
+                "لا توجد مقاسات لحفظها",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        val lengthAdjustment =
+            b.lengthAdjustmentInput.text
+                .toString()
+                .trim()
+                .toDoubleOrNull()
+                ?: 0.0
+
+        val widthAdjustment =
+            b.widthAdjustmentInput.text
+                .toString()
+                .trim()
+                .toDoubleOrNull()
+                ?: 0.0
+
+        val adjustmentType =
+            if (b.subtractRadio.isChecked) {
+                "subtract"
+            } else {
+                "add"
+            }
+
+        val copiedMeasurements =
+            measurements.map {
+
+                MeasurementItem(
+                    length =
+                        it.length,
+
+                    width =
+                        it.width,
+
+                    quantity =
+                        it.quantity,
+
+                    unit =
+                        it.unit,
+
+                    adjustedLength =
+                        it.adjustedLength,
+
+                    adjustedWidth =
+                        it.adjustedWidth
+                )
+            }
+
+        val project =
+            SavedProject(
+                id =
+                    System.currentTimeMillis(),
+
+                projectName =
+                    projectName,
+
+                customerName =
+                    customerName,
+
+                notes =
+                    notes,
+
+                createdAt =
+                    System.currentTimeMillis(),
+
+                adjustmentType =
+                    adjustmentType,
+
+                lengthAdjustment =
+                    lengthAdjustment,
+
+                widthAdjustment =
+                    widthAdjustment,
+
+                measurements =
+                    copiedMeasurements
+            )
+
+        val success =
+            ProjectStorage.saveProject(
+                this,
+                project
+            )
+
+        if (success) {
+
+            Toast.makeText(
+                this,
+                "تم حفظ المشروع والمقاسات بنجاح",
+                Toast.LENGTH_LONG
+            ).show()
+
+        } else {
+
+            Toast.makeText(
+                this,
+                "حدث خطأ أثناء حفظ المشروع",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     private fun renderTables() {
 
         while (
             b.originalTable.childCount > 1
         ) {
-
             b.originalTable.removeViewAt(1)
         }
 
         while (
             b.adjustedTable.childCount > 1
         ) {
-
             b.adjustedTable.removeViewAt(1)
         }
 
@@ -625,10 +666,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 " م²"
     }
 
-    // =====================================================
-    // حساب المتر المربع
-    // =====================================================
-
     private fun calculateArea(
         length: Double,
         width: Double,
@@ -641,10 +678,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             width / 100.0
         ) * quantity
     }
-
-    // =====================================================
-    // إنشاء صف
-    // =====================================================
 
     private fun createRow(
         number: Int,
@@ -696,10 +729,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         return row
     }
 
-    // =====================================================
-    // خلية داخل الجدول
-    // =====================================================
-
     private fun createCell(
         value: String
     ): TextView {
@@ -720,10 +749,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             )
         }
     }
-
-    // =====================================================
-    // إغلاق قارئ النص
-    // =====================================================
 
     override fun onDestroy() {
 
