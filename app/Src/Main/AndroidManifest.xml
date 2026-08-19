@@ -11,6 +11,14 @@
         android:theme="@style/Theme.SmartMeasureGZ">
 
         <activity
+            android:name=".ProjectDetailsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SavedProjectsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ScanMeasurementsActivity"
             android:exported="false" />
 
