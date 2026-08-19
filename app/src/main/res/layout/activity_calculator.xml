@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F7FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="حاسبة المقاسات"
+            android:textColor="#0B2341"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="22dp"
+            android:gravity="center"
+            android:text="تصميم المهندس حسين الغزالي"
+            android:textColor="#B8860B"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/lengthInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="الطول"
+            android:inputType="numberDecimal"
+            android:padding="14dp" />
+
+        <EditText
+            android:id="@+id/widthInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="العرض"
+            android:inputType="numberDecimal"
+            android:padding="14dp" />
+
+        <EditText
+            android:id="@+id/quantityInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="العدد"
+            android:inputType="number"
+            android:padding="14dp" />
+
+        <Spinner
+            android:id="@+id/unitSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp" />
+
+        <Button
+            android:id="@+id/calculateBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="16dp"
+            android:text="حساب"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="جدول المقاسات الأصلية"
+            android:textColor="#0B2341"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:stretchColumns="*">
+
+            <TableRow>
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="المقاس"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="العدد"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="المساحة"
+                    android:textStyle="bold" />
+
+            </TableRow>
+
+            <TableRow>
+
+                <TextView
+                    android:id="@+id/originalMeasurementText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+                <TextView
+                    android:id="@+id/originalQuantityText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+                <TextView
+                    android:id="@+id/originalAreaText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+            </TableRow>
+
+        </TableLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="تعديل المقاسات"
+            android:textColor="#0B2341"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/subtractRadio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="تنقيص" />
+
+            <RadioButton
+                android:id="@+id/addRadio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="25dp"
+                android:text="زيادة" />
+
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/lengthAdjustmentInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="قيمة تعديل الطول"
+            android:inputType="numberDecimal"
+            android:padding="14dp" />
+
+        <EditText
+            android:id="@+id/widthAdjustmentInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="قيمة تعديل العرض"
+            android:inputType="numberDecimal"
+            android:padding="14dp" />
+
+        <Button
+            android:id="@+id/applyAdjustmentBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="14dp"
+            android:text="تطبيق التعديل"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="جدول المقاسات بعد التعديل"
+            android:textColor="#0B2341"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:stretchColumns="*">
+
+            <TableRow>
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="المقاس"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="العدد"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="المساحة"
+                    android:textStyle="bold" />
+
+            </TableRow>
+
+            <TableRow>
+
+                <TextView
+                    android:id="@+id/adjustedMeasurementText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+                <TextView
+                    android:id="@+id/adjustedQuantityText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+                <TextView
+                    android:id="@+id/adjustedAreaText"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="-" />
+
+            </TableRow>
+
+        </TableLayout>
+
+        <Button
+            android:id="@+id/clearBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="22dp"
+            android:layout_marginBottom="25dp"
+            android:text="مسح"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
+    </LinearLayout>
+
+</ScrollView>
