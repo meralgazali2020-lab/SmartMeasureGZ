@@ -13,7 +13,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- عنوان البرنامج -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -33,12 +32,39 @@
             android:textColor="#777777"
             android:paddingBottom="18dp" />
 
-        <!-- اختيار صورة -->
+        <EditText
+            android:id="@+id/projectNameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="اسم المشروع"
+            android:inputType="text"
+            android:padding="12dp" />
+
+        <EditText
+            android:id="@+id/customerNameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="اسم الزبون - اختياري"
+            android:inputType="text"
+            android:padding="12dp" />
+
+        <EditText
+            android:id="@+id/notesInput"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="8dp"
+            android:gravity="top"
+            android:hint="ملاحظات المشروع"
+            android:inputType="textMultiLine"
+            android:padding="12dp" />
+
         <Button
             android:id="@+id/selectImageBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="📷 اختيار صورة ورقة المقاسات"
+            android:layout_marginTop="12dp"
+            android:text="📷 تصوير أو اختيار ورقة المقاسات"
             android:textSize="17sp" />
 
         <ImageView
@@ -61,7 +87,6 @@
             android:textColor="#0B2341"
             android:padding="12dp" />
 
-        <!-- النص الذي تمت قراءته -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -82,10 +107,6 @@
             android:text="سيظهر النص هنا..."
             android:textSize="14sp"
             android:textIsSelectable="true" />
-
-        <!-- ============================= -->
-        <!-- جدول المقاسات الأصلية -->
-        <!-- ============================= -->
 
         <TextView
             android:layout_width="match_parent"
@@ -163,10 +184,6 @@
             android:gravity="center"
             android:padding="12dp" />
 
-        <!-- ============================= -->
-        <!-- إعداد التعديل -->
-        <!-- ============================= -->
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -232,10 +249,6 @@
             android:layout_height="wrap_content"
             android:text="إلغاء التعديل وإرجاع الأصل"
             android:layout_marginTop="6dp" />
-
-        <!-- ============================= -->
-        <!-- جدول المقاسات المعدلة -->
-        <!-- ============================= -->
 
         <TextView
             android:layout_width="match_parent"
@@ -312,6 +325,16 @@
             android:textColor="#0B2341"
             android:gravity="center"
             android:padding="12dp" />
+
+        <Button
+            android:id="@+id/saveProjectBtn"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="18dp"
+            android:text="💾 حفظ المشروع والمقاسات"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textAllCaps="false" />
 
         <TextView
             android:layout_width="match_parent"
