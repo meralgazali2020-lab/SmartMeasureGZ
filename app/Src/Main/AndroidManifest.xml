@@ -11,6 +11,10 @@
         android:theme="@style/Theme.SmartMeasureGZ">
 
         <activity
+            android:name=".NotesActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ProjectDetailsActivity"
             android:exported="false" />
 
