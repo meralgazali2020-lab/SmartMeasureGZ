@@ -1,352 +1,53 @@
-package com.smartmeasure.gz
-
-import android.os.Bundle
-import android.view.Gravity
-import android.widget.TableRow
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import com.smartmeasure.gz.databinding.ActivityProjectDetailsBinding
-import java.text.DecimalFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-class ProjectDetailsActivity : AppCompatActivity() {
-
-    private lateinit var b:
-        ActivityProjectDetailsBinding
-
-    private var currentProject:
-        SavedProject? = null
-
-    private val formatter =
-        DecimalFormat("#.##")
-
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
-        super.onCreate(savedInstanceState)
-
-        b =
-            ActivityProjectDetailsBinding.inflate(
-                layoutInflater
-            )
-
-        setContentView(b.root)
-
-        loadProject()
-
-        b.deleteProjectBtn
-            .setOnClickListener {
-
-                confirmDelete()
-            }
-    }
-
-    private fun loadProject() {
-
-        val projectId =
-            intent.getLongExtra(
-                "projectId",
-                -1L
-            )
-
-        val project =
-            ProjectStorage
-                .getProjects(this)
-                .firstOrNull {
-                    it.id ==
-                        projectId
-                }
-
-        if (project == null) {
-
-            Toast.makeText(
-                this,
-                "تعذر العثور على المشروع",
-                Toast.LENGTH_LONG
-            ).show()
-
-            finish()
-
-            return
-        }
-
-        currentProject =
-            project
-
-        showProject(
-            project
-        )
-    }
-
-    private fun showProject(
-        project: SavedProject
-    ) {
-
-        b.projectNameText.text =
-            project.projectName
-
-        b.customerNameText.text =
-            if (
-                project.customerName
-                    .isBlank()
-            ) {
-                "الزبون: غير محدد"
-            } else {
-                "الزبون: ${project.customerName}"
-            }
-
-        b.dateText.text =
-            "التاريخ: ${formatDate(project.createdAt)}"
-
-        b.notesText.text =
-            if (
-                project.notes
-                    .isBlank()
-            ) {
-                "لا توجد ملاحظات"
-            } else {
-                project.notes
-            }
-
-        val type =
-            if (
-                project.adjustmentType ==
-                "add"
-            ) {
-                "زيادة"
-            } else {
-                "تنقيص"
-            }
-
-        b.adjustmentText.text =
-            "الإجراء: $type | " +
-                "الطول ${formatter.format(project.lengthAdjustment)} سم | " +
-                "العرض ${formatter.format(project.widthAdjustment)} سم"
-
-        renderTables(
-            project
-        )
-    }
-
-    private fun renderTables(
-        project: SavedProject
-    ) {
-
-        while (
-            b.originalTable.childCount > 1
-        ) {
-            b.originalTable.removeViewAt(1)
-        }
-
-        while (
-            b.adjustedTable.childCount > 1
-        ) {
-            b.adjustedTable.removeViewAt(1)
-        }
-
-        var originalTotal =
-            0.0
-
-        var adjustedTotal =
-            0.0
-
-        for (
-            (index, item) in
-            project.measurements.withIndex()
-        ) {
-
-            val originalArea =
-                calculateArea(
-                    item.length,
-                    item.width,
-                    item.quantity
-                )
-
-            val adjustedArea =
-                calculateArea(
-                    item.adjustedLength,
-                    item.adjustedWidth,
-                    item.quantity
-                )
-
-            originalTotal +=
-                originalArea
-
-            adjustedTotal +=
-                adjustedArea
-
-            b.originalTable.addView(
-                createRow(
-                    index + 1,
-                    item.length,
-                    item.width,
-                    item.quantity,
-                    originalArea
-                )
-            )
-
-            b.adjustedTable.addView(
-                createRow(
-                    index + 1,
-                    item.adjustedLength,
-                    item.adjustedWidth,
-                    item.quantity,
-                    adjustedArea
-                )
-            )
-        }
-
-        b.originalTotalText.text =
-            "إجمالي الأصلي: " +
-                formatter.format(
-                    originalTotal
-                ) +
-                " م²"
-
-        b.adjustedTotalText.text =
-            "إجمالي المعدل: " +
-                formatter.format(
-                    adjustedTotal
-                ) +
-                " م²"
-    }
-
-    private fun calculateArea(
-        length: Double,
-        width: Double,
-        quantity: Int
-    ): Double {
-
-        return (
-            length / 100.0
-        ) * (
-            width / 100.0
-        ) * quantity
-    }
-
-    private fun createRow(
-        number: Int,
-        length: Double,
-        width: Double,
-        quantity: Int,
-        area: Double
-    ): TableRow {
-
-        return TableRow(this).apply {
-
-            addView(
-                createCell(
-                    number.toString()
-                )
-            )
-
-            addView(
-                createCell(
-                    formatter.format(
-                        length
-                    )
-                )
-            )
-
-            addView(
-                createCell(
-                    formatter.format(
-                        width
-                    )
-                )
-            )
-
-            addView(
-                createCell(
-                    quantity.toString()
-                )
-            )
-
-            addView(
-                createCell(
-                    formatter.format(
-                        area
-                    )
-                )
-            )
-        }
-    }
-
-    private fun createCell(
-        value: String
-    ): TextView {
-
-        return TextView(this).apply {
-
-            text =
-                value
-
-            gravity =
-                Gravity.CENTER
-
-            setPadding(
-                12,
-                16,
-                12,
-                16
-            )
-        }
-    }
-
-    private fun confirmDelete() {
-
-        val project =
-            currentProject
-                ?: return
-
-        AlertDialog.Builder(this)
-            .setTitle(
-                "حذف المشروع"
-            )
-            .setMessage(
-                "هل تريد حذف هذا المشروع نهائيًا؟"
-            )
-            .setPositiveButton(
-                "حذف"
-            ) { _, _ ->
-
-                ProjectStorage
-                    .deleteProject(
-                        this,
-                        project.id
-                    )
-
-                Toast.makeText(
-                    this,
-                    "تم حذف المشروع",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                finish()
-            }
-            .setNegativeButton(
-                "إلغاء",
-                null
-            )
-            .show()
-    }
-
-    private fun formatDate(
-        value: Long
-    ): String {
-
-        val formatter =
-            SimpleDateFormat(
-                "yyyy/MM/dd - HH:mm",
-                Locale.getDefault()
-            )
-
-        return formatter.format(
-            Date(value)
-        )
-    }
-}
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F7FA"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="المشاريع المحفوظة"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#0B2341"
+            android:gravity="center"
+            android:paddingBottom="6dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="تصميم المهندس حسين الغزالي"
+            android:textSize="14sp"
+            android:textColor="#777777"
+            android:gravity="center"
+            android:paddingBottom="20dp" />
+
+        <TextView
+            android:id="@+id/emptyText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="لا توجد مشاريع محفوظة حتى الآن"
+            android:textSize="17sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:padding="30dp" />
+
+        <LinearLayout
+            android:id="@+id/projectsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+</ScrollView>
