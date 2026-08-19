@@ -1,5 +1,6 @@
 package com.smartmeasure.gz
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -7,31 +8,34 @@ import com.smartmeasure.gz.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+    private lateinit var b: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        b = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(b.root)
 
-        binding.newProjectBtn.setOnClickListener {
+        b.calculatorBtn.setOnClickListener {
+
+            val intent =
+                Intent(
+                    this,
+                    CalculatorActivity::class.java
+                )
+
+            startActivity(intent)
+        }
+
+        b.newProjectBtn.setOnClickListener {
             Toast.makeText(
                 this,
-                "مشروع جديد",
+                "إنشاء مشروع جديد",
                 Toast.LENGTH_SHORT
             ).show()
         }
 
-        binding.savedProjectsBtn.setOnClickListener {
-            Toast.makeText(
-                this,
-                "المشاريع المحفوظة",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        binding.scanMeasurementsBtn.setOnClickListener {
+        b.scanMeasurementsBtn.setOnClickListener {
             Toast.makeText(
                 this,
                 "تصوير ورقة المقاسات",
@@ -39,15 +43,15 @@ class MainActivity : AppCompatActivity() {
             ).show()
         }
 
-        binding.calculatorBtn.setOnClickListener {
+        b.savedProjectsBtn.setOnClickListener {
             Toast.makeText(
                 this,
-                "حاسبة المقاسات",
+                "المشاريع والمقاسات المحفوظة",
                 Toast.LENGTH_SHORT
             ).show()
         }
 
-        binding.notesBtn.setOnClickListener {
+        b.notesBtn.setOnClickListener {
             Toast.makeText(
                 this,
                 "الملاحظات",
