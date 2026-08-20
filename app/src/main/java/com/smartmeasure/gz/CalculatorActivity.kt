@@ -25,13 +25,17 @@ class CalculatorActivity : AppCompatActivity() {
     private val formatter =
         DecimalFormat("#.###")
 
-    // جميع العمليات الموجودة حاليًا داخل المشروع
     private val operations =
         mutableListOf<MeasurementItem>()
 
-    // رقم العملية التالية
     private var nextOperationNumber =
         1
+
+    private var editingProjectId: Long =
+        -1L
+
+    private var originalCreatedAt: Long =
+        0L
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -49,12 +53,30 @@ class CalculatorActivity : AppCompatActivity() {
 
         setupUnitSpinner()
         setupButtons()
-        updateOperationNumber()
-        refreshOperationsList()
+
+        editingProjectId =
+            intent.getLongExtra(
+                "projectId",
+                -1L
+            )
+
+        if (
+            editingProjectId != -1L
+        ) {
+
+            loadExistingProject(
+                editingProjectId
+            )
+
+        } else {
+
+            updateOperationNumber()
+            refreshOperationsList()
+        }
     }
 
     // =====================================================
-    // الوحدة
+    // إعداد الوحدات
     // =====================================================
 
     private fun setupUnitSpinner() {
@@ -82,7 +104,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // الأزرار
+    // إعداد الأزرار
     // =====================================================
 
     private fun setupButtons() {
@@ -129,28 +151,171 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حساب المقاس
+    // تحميل مشروع محفوظ
+    // =====================================================
+
+    private fun loadExistingProject(
+        projectId: Long
+    ) {
+
+        val project =
+            ProjectStorage
+                .getProjects(this)
+                .firstOrNull {
+                    it.id == projectId
+                }
+
+        if (
+            project == null
+        ) {
+
+            Toast.makeText(
+                this,
+                "تعذر تحميل المشروع",
+                Toast.LENGTH_LONG
+            ).show()
+
+            editingProjectId =
+                -1L
+
+            updateOperationNumber()
+            refreshOperationsList()
+
+            return
+        }
+
+        originalCreatedAt =
+            project.createdAt
+
+        b.projectNameInput.setText(
+            project.projectName
+        )
+
+        b.customerNameInput.setText(
+            project.customerName
+        )
+
+        b.projectNotesInput.setText(
+            project.notes
+        )
+
+        b.lengthAdjustmentInput.setText(
+            if (
+                project.lengthAdjustment == 0.0
+            ) {
+
+                ""
+
+            } else {
+
+                formatter.format(
+                    project.lengthAdjustment
+                )
+            }
+        )
+
+        b.widthAdjustmentInput.setText(
+            if (
+                project.widthAdjustment == 0.0
+            ) {
+
+                ""
+
+            } else {
+
+                formatter.format(
+                    project.widthAdjustment
+                )
+            }
+        )
+
+        if (
+            project.adjustmentType == "add"
+        ) {
+
+            b.addRadio.isChecked =
+                true
+
+        } else {
+
+            b.subtractRadio.isChecked =
+                true
+        }
+
+        operations.clear()
+
+        project.measurements
+            .forEachIndexed {
+                    index,
+                    item ->
+
+                val safeOperationNumber =
+                    if (
+                        item.operationNumber > 0
+                    ) {
+
+                        item.operationNumber
+
+                    } else {
+
+                        index + 1
+                    }
+
+                operations.add(
+                    item.copy(
+                        operationNumber =
+                            safeOperationNumber
+                    )
+                )
+            }
+
+        nextOperationNumber =
+            if (
+                operations.isEmpty()
+            ) {
+
+                1
+
+            } else {
+
+                operations.maxOf {
+                    it.operationNumber
+                } + 1
+            }
+
+        updateOperationNumber()
+        refreshOperationsList()
+
+        Toast.makeText(
+            this,
+            "تم فتح المشروع للمتابعة",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    // =====================================================
+    // حساب المقاس الحالي
     // =====================================================
 
     private fun calculateMeasurement(): Boolean {
 
         val length =
-            b.lengthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
+            normalizedDouble(
+                b.lengthInput.text
+                    .toString()
+            )
 
         val width =
-            b.widthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
+            normalizedDouble(
+                b.widthInput.text
+                    .toString()
+            )
 
         val quantity =
-            b.quantityInput.text
-                .toString()
-                .trim()
-                .toIntOrNull()
+            normalizedInt(
+                b.quantityInput.text
+                    .toString()
+            )
 
         if (
             length == null ||
@@ -186,25 +351,13 @@ class CalculatorActivity : AppCompatActivity() {
             b.unitSpinner.selectedItem
                 .toString()
 
-        val lengthMeters =
-            convertToMeters(
-                length,
-                unit
-            )
-
-        val widthMeters =
-            convertToMeters(
-                width,
-                unit
-            )
-
-        val areaPerPiece =
-            lengthMeters *
-                widthMeters
-
         val totalArea =
-            areaPerPiece *
-                quantity
+            calculateArea(
+                length,
+                width,
+                quantity,
+                unit
+            )
 
         b.originalMeasurementText.text =
             "${formatter.format(length)} × " +
@@ -226,22 +379,22 @@ class CalculatorActivity : AppCompatActivity() {
     private fun applyAdjustment(): Boolean {
 
         val originalLength =
-            b.lengthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
+            normalizedDouble(
+                b.lengthInput.text
+                    .toString()
+            )
 
         val originalWidth =
-            b.widthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
+            normalizedDouble(
+                b.widthInput.text
+                    .toString()
+            )
 
         val quantity =
-            b.quantityInput.text
-                .toString()
-                .trim()
-                .toIntOrNull()
+            normalizedInt(
+                b.quantityInput.text
+                    .toString()
+            )
 
         if (
             originalLength == null ||
@@ -253,18 +406,16 @@ class CalculatorActivity : AppCompatActivity() {
         }
 
         val lengthAdjustment =
-            b.lengthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.lengthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val widthAdjustment =
-            b.widthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.widthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val adjustedLength =
             if (
@@ -312,22 +463,13 @@ class CalculatorActivity : AppCompatActivity() {
             b.unitSpinner.selectedItem
                 .toString()
 
-        val lengthMeters =
-            convertToMeters(
-                adjustedLength,
-                unit
-            )
-
-        val widthMeters =
-            convertToMeters(
-                adjustedWidth,
-                unit
-            )
-
         val totalArea =
-            lengthMeters *
-                widthMeters *
-                quantity
+            calculateArea(
+                adjustedLength,
+                adjustedWidth,
+                quantity,
+                unit
+            )
 
         b.adjustedMeasurementText.text =
             "${formatter.format(adjustedLength)} × " +
@@ -343,7 +485,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إضافة العملية الحالية
+    // إضافة عملية جديدة
     // =====================================================
 
     private fun addCurrentOperation() {
@@ -356,39 +498,34 @@ class CalculatorActivity : AppCompatActivity() {
         }
 
         val length =
-            b.lengthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: return
+            normalizedDouble(
+                b.lengthInput.text
+                    .toString()
+            ) ?: return
 
         val width =
-            b.widthInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: return
+            normalizedDouble(
+                b.widthInput.text
+                    .toString()
+            ) ?: return
 
         val quantity =
-            b.quantityInput.text
-                .toString()
-                .trim()
-                .toIntOrNull()
-                ?: return
+            normalizedInt(
+                b.quantityInput.text
+                    .toString()
+            ) ?: return
 
         val lengthAdjustment =
-            b.lengthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.lengthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val widthAdjustment =
-            b.widthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.widthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val adjustedLength =
             if (
@@ -474,7 +611,6 @@ class CalculatorActivity : AppCompatActivity() {
         nextOperationNumber++
 
         updateOperationNumber()
-
         refreshOperationsList()
 
         clearCurrentOperationFields(
@@ -483,7 +619,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // عرض رقم العملية التالية
+    // رقم العملية الحالية
     // =====================================================
 
     private fun updateOperationNumber() {
@@ -497,7 +633,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // عرض العمليات المضافة
+    // عرض العمليات
     // =====================================================
 
     private fun refreshOperationsList() {
@@ -560,7 +696,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // بطاقة العملية
+    // بطاقة كل عملية
     // =====================================================
 
     private fun addOperationCard(
@@ -642,7 +778,7 @@ class CalculatorActivity : AppCompatActivity() {
                         formatter.format(
                             item.width
                         )
-                    } ${item.unit}   |   العدد: ${
+                    } ${item.unit} | العدد: ${
                         toArabicNumber(
                             item.quantity
                         )
@@ -707,7 +843,7 @@ class CalculatorActivity : AppCompatActivity() {
                 item.unit
             )
 
-        val area =
+        val areaText =
             TextView(this).apply {
 
                 text =
@@ -715,7 +851,7 @@ class CalculatorActivity : AppCompatActivity() {
                         formatter.format(
                             originalArea
                         )
-                    } م²   |   المعدلة: ${
+                    } م² | المعدلة: ${
                         formatter.format(
                             adjustedArea
                         )
@@ -733,7 +869,7 @@ class CalculatorActivity : AppCompatActivity() {
             }
 
         container.addView(
-            area
+            areaText
         )
 
         val deleteButton =
@@ -767,7 +903,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حذف عملية
+    // حذف عملية محددة
     // =====================================================
 
     private fun confirmDeleteOperation(
@@ -785,7 +921,7 @@ class CalculatorActivity : AppCompatActivity() {
                     toArabicNumber(
                         item.operationNumber
                     )
-                }؟\n\nلن تتغير أرقام العمليات الأخرى."
+                }؟\nلن تتغير أرقام العمليات الأخرى."
             )
 
             .setNegativeButton(
@@ -818,7 +954,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حفظ المشروع
+    // حفظ أو تحديث المشروع
     // =====================================================
 
     private fun saveCurrentProject() {
@@ -829,7 +965,7 @@ class CalculatorActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "أضف عملية واحدة على الأقل قبل حفظ المشروع",
+                "أضف عملية واحدة على الأقل قبل الحفظ",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -860,18 +996,16 @@ class CalculatorActivity : AppCompatActivity() {
                 .trim()
 
         val lengthAdjustment =
-            b.lengthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.lengthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val widthAdjustment =
-            b.widthAdjustmentInput.text
-                .toString()
-                .trim()
-                .toDoubleOrNull()
-                ?: 0.0
+            normalizedDouble(
+                b.widthAdjustmentInput.text
+                    .toString()
+            ) ?: 0.0
 
         val adjustmentType =
             if (
@@ -888,7 +1022,16 @@ class CalculatorActivity : AppCompatActivity() {
         val project =
             SavedProject(
                 id =
-                    System.currentTimeMillis(),
+                    if (
+                        editingProjectId != -1L
+                    ) {
+
+                        editingProjectId
+
+                    } else {
+
+                        System.currentTimeMillis()
+                    },
 
                 projectName =
                     projectName,
@@ -900,7 +1043,16 @@ class CalculatorActivity : AppCompatActivity() {
                     notes,
 
                 createdAt =
-                    System.currentTimeMillis(),
+                    if (
+                        originalCreatedAt > 0L
+                    ) {
+
+                        originalCreatedAt
+
+                    } else {
+
+                        System.currentTimeMillis()
+                    },
 
                 adjustmentType =
                     adjustmentType,
@@ -917,13 +1069,33 @@ class CalculatorActivity : AppCompatActivity() {
                     }
             )
 
-        val saved =
-            ProjectStorage.saveProject(
-                this,
-                project
-            )
+        val success =
+            if (
+                editingProjectId == -1L
+            ) {
 
-        if (saved) {
+                ProjectStorage.saveProject(
+                    this,
+                    project
+                )
+
+            } else {
+
+                ProjectStorage.updateProject(
+                    this,
+                    project
+                )
+            }
+
+        if (
+            success
+        ) {
+
+            editingProjectId =
+                project.id
+
+            originalCreatedAt =
+                project.createdAt
 
             b.projectNameInput.setText(
                 projectName
@@ -931,7 +1103,7 @@ class CalculatorActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "تم حفظ المشروع بنجاح وعدد عملياته ${
+                "تم حفظ المشروع وعدد عملياته ${
                     toArabicNumber(
                         operations.size
                     )
@@ -943,7 +1115,7 @@ class CalculatorActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "حدث خطأ أثناء حفظ المشروع",
+                "تعذر حفظ المشروع",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -955,20 +1127,6 @@ class CalculatorActivity : AppCompatActivity() {
 
     private fun requestNewProject() {
 
-        if (
-            operations.isEmpty() &&
-            b.projectNameInput.text
-                .toString()
-                .isBlank() &&
-            b.customerNameInput.text
-                .toString()
-                .isBlank()
-        ) {
-
-            resetEntireProject()
-            return
-        }
-
         AlertDialog.Builder(this)
 
             .setTitle(
@@ -976,7 +1134,7 @@ class CalculatorActivity : AppCompatActivity() {
             )
 
             .setMessage(
-                "هل تريد بدء مشروع جديد؟\n\nتأكد من حفظ المشروع الحالي أولًا إذا كنت تريد الاحتفاظ به."
+                "هل تريد بدء مشروع جديد؟ تأكد من حفظ المشروع الحالي أولًا."
             )
 
             .setNegativeButton(
@@ -1005,15 +1163,15 @@ class CalculatorActivity : AppCompatActivity() {
         nextOperationNumber =
             1
 
+        editingProjectId =
+            -1L
+
+        originalCreatedAt =
+            0L
+
         b.projectNameInput.text?.clear()
         b.customerNameInput.text?.clear()
         b.projectNotesInput.text?.clear()
-
-        b.lengthAdjustmentInput.text?.clear()
-        b.widthAdjustmentInput.text?.clear()
-
-        b.subtractRadio.isChecked =
-            true
 
         clearCurrentOperationFields(
             keepAdjustments = false
@@ -1030,7 +1188,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // مسح حقول العملية الحالية
+    // مسح حقول العملية الحالية فقط
     // =====================================================
 
     private fun clearCurrentOperationFields(
@@ -1045,13 +1203,8 @@ class CalculatorActivity : AppCompatActivity() {
             !keepAdjustments
         ) {
 
-            b.lengthAdjustmentInput
-                .text
-                ?.clear()
-
-            b.widthAdjustmentInput
-                .text
-                ?.clear()
+            b.lengthAdjustmentInput.text?.clear()
+            b.widthAdjustmentInput.text?.clear()
 
             b.subtractRadio.isChecked =
                 true
@@ -1099,7 +1252,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // التحويل للمتر
+    // تحويل للمتر
     // =====================================================
 
     private fun convertToMeters(
@@ -1107,9 +1260,7 @@ class CalculatorActivity : AppCompatActivity() {
         unit: String
     ): Double {
 
-        return when (
-            unit
-        ) {
+        return when (unit) {
 
             "مم" ->
                 value / 1000.0
@@ -1123,7 +1274,70 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // اسم تلقائي للمشروع
+    // قراءة رقم عشري
+    // =====================================================
+
+    private fun normalizedDouble(
+        value: String
+    ): Double? {
+
+        return normalizeNumbers(
+            value
+        )
+            .trim()
+            .toDoubleOrNull()
+    }
+
+    // =====================================================
+    // قراءة عدد صحيح
+    // =====================================================
+
+    private fun normalizedInt(
+        value: String
+    ): Int? {
+
+        return normalizeNumbers(
+            value
+        )
+            .trim()
+            .toIntOrNull()
+    }
+
+    // =====================================================
+    // دعم الأرقام العربية والفارسية
+    // =====================================================
+
+    private fun normalizeNumbers(
+        value: String
+    ): String {
+
+        return value
+            .replace('٠', '0')
+            .replace('١', '1')
+            .replace('٢', '2')
+            .replace('٣', '3')
+            .replace('٤', '4')
+            .replace('٥', '5')
+            .replace('٦', '6')
+            .replace('٧', '7')
+            .replace('٨', '8')
+            .replace('٩', '9')
+            .replace('۰', '0')
+            .replace('۱', '1')
+            .replace('۲', '2')
+            .replace('۳', '3')
+            .replace('۴', '4')
+            .replace('۵', '5')
+            .replace('۶', '6')
+            .replace('۷', '7')
+            .replace('۸', '8')
+            .replace('۹', '9')
+            .replace('٫', '.')
+            .replace(',', '.')
+    }
+
+    // =====================================================
+    // اسم مشروع تلقائي
     // =====================================================
 
     private fun createAutomaticProjectName(): String {
@@ -1140,7 +1354,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // أرقام عربية
+    // تحويل الأرقام للعرض العربي
     // =====================================================
 
     private fun toArabicNumber(
@@ -1149,45 +1363,15 @@ class CalculatorActivity : AppCompatActivity() {
 
         return value
             .toString()
-            .replace(
-                '0',
-                '٠'
-            )
-            .replace(
-                '1',
-                '١'
-            )
-            .replace(
-                '2',
-                '٢'
-            )
-            .replace(
-                '3',
-                '٣'
-            )
-            .replace(
-                '4',
-                '٤'
-            )
-            .replace(
-                '5',
-                '٥'
-            )
-            .replace(
-                '6',
-                '٦'
-            )
-            .replace(
-                '7',
-                '٧'
-            )
-            .replace(
-                '8',
-                '٨'
-            )
-            .replace(
-                '9',
-                '٩'
-            )
+            .replace('0', '٠')
+            .replace('1', '١')
+            .replace('2', '٢')
+            .replace('3', '٣')
+            .replace('4', '٤')
+            .replace('5', '٥')
+            .replace('6', '٦')
+            .replace('7', '٧')
+            .replace('8', '٨')
+            .replace('9', '٩')
     }
 }
