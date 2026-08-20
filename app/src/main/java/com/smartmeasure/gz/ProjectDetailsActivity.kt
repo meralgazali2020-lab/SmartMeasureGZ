@@ -1,476 +1,696 @@
 package com.smartmeasure.gz
 
-import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
+import android.graphics.Color
+import android.graphics.Typeface
+import android.os.Bundle
+import android.view.Gravity
+import android.widget.TableRow
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import com.smartmeasure.gz.databinding.ActivityProjectDetailsBinding
+import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-object ProjectStorage {
+class ProjectDetailsActivity : AppCompatActivity() {
 
-    private const val PREFS_NAME =
-        "smart_measure_projects"
+    private lateinit var b: ActivityProjectDetailsBinding
 
-    private const val KEY_PROJECTS =
-        "saved_projects"
+    private var projectId: Long = -1L
 
-    // =====================================================
-    // حفظ مشروع جديد
-    // =====================================================
+    private var currentProject: SavedProject? = null
 
-    fun saveProject(
-        context: Context,
-        project: SavedProject
-    ): Boolean {
+    private val formatter =
+        DecimalFormat("#.###")
 
-        return try {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+        super.onCreate(savedInstanceState)
 
-            val prefs =
-                context.getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-
-            val oldJson =
-                prefs.getString(
-                    KEY_PROJECTS,
-                    "[]"
-                ) ?: "[]"
-
-            val projectsArray =
-                JSONArray(oldJson)
-
-            val projectObject =
-                projectToJson(
-                    project
-                )
-
-            projectsArray.put(
-                projectObject
+        b =
+            ActivityProjectDetailsBinding.inflate(
+                layoutInflater
             )
 
-            prefs.edit()
-                .putString(
-                    KEY_PROJECTS,
-                    projectsArray.toString()
-                )
-                .apply()
+        setContentView(b.root)
 
-            true
-
-        } catch (e: Exception) {
-
-            false
-        }
-    }
-
-    // =====================================================
-    // قراءة جميع المشاريع
-    // =====================================================
-
-    fun getProjects(
-        context: Context
-    ): MutableList<SavedProject> {
-
-        val result =
-            mutableListOf<SavedProject>()
-
-        try {
-
-            val prefs =
-                context.getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-
-            val json =
-                prefs.getString(
-                    KEY_PROJECTS,
-                    "[]"
-                ) ?: "[]"
-
-            val array =
-                JSONArray(json)
-
-            for (
-                index in
-                0 until array.length()
-            ) {
-
-                val projectObject =
-                    array.getJSONObject(
-                        index
-                    )
-
-                result.add(
-                    jsonToProject(
-                        projectObject
-                    )
-                )
-            }
-
-        } catch (_: Exception) {
-
-        }
-
-        return result
-    }
-
-    // =====================================================
-    // حذف مشروع
-    // =====================================================
-
-    fun deleteProject(
-        context: Context,
-        projectId: Long
-    ): Boolean {
-
-        return try {
-
-            val projects =
-                getProjects(context)
-
-            projects.removeAll {
-                it.id == projectId
-            }
-
-            saveAllProjects(
-                context,
-                projects
+        projectId =
+            intent.getLongExtra(
+                "projectId",
+                -1L
             )
 
-            true
+        if (projectId == -1L) {
 
-        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "تعذر فتح المشروع",
+                Toast.LENGTH_SHORT
+            ).show()
 
-            false
+            finish()
+            return
+        }
+
+        setupButtons()
+
+        loadProject()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (projectId != -1L) {
+            loadProject()
         }
     }
 
     // =====================================================
-    // تحديث مشروع موجود
+    // الأزرار
     // =====================================================
 
-    fun updateProject(
-        context: Context,
-        updatedProject: SavedProject
-    ): Boolean {
+    private fun setupButtons() {
 
-        return try {
+        b.deleteProjectBtn.setOnClickListener {
 
-            val projects =
-                getProjects(context)
+            showDeleteProjectDialog()
+        }
+    }
 
-            val index =
-                projects.indexOfFirst {
-                    it.id ==
-                        updatedProject.id
+    // =====================================================
+    // تحميل المشروع
+    // =====================================================
+
+    private fun loadProject() {
+
+        val project =
+            ProjectStorage
+                .getProjects(this)
+                .firstOrNull {
+                    it.id == projectId
                 }
 
-            if (index == -1) {
+        if (project == null) {
 
-                return false
-            }
+            Toast.makeText(
+                this,
+                "المشروع غير موجود",
+                Toast.LENGTH_SHORT
+            ).show()
 
-            projects[index] =
-                updatedProject
-
-            saveAllProjects(
-                context,
-                projects
-            )
-
-            true
-
-        } catch (e: Exception) {
-
-            false
+            finish()
+            return
         }
+
+        currentProject =
+            project
+
+        showProjectInformation(
+            project
+        )
+
+        showMeasurements(
+            project
+        )
     }
 
     // =====================================================
-    // حفظ قائمة المشاريع كاملة
+    // معلومات المشروع
     // =====================================================
 
-    private fun saveAllProjects(
-        context: Context,
-        projects: List<SavedProject>
+    private fun showProjectInformation(
+        project: SavedProject
     ) {
 
-        val array =
-            JSONArray()
+        b.projectNameText.text =
+            if (
+                project.projectName
+                    .isBlank()
+            ) {
+                "مشروع بدون اسم"
+            } else {
+                project.projectName
+            }
 
-        for (project in projects) {
+        b.customerNameText.text =
+            if (
+                project.customerName
+                    .isBlank()
+            ) {
 
-            array.put(
-                projectToJson(
-                    project
+                "الزبون: غير محدد"
+
+            } else {
+
+                "الزبون: ${project.customerName}"
+            }
+
+        b.dateText.text =
+            "التاريخ: ${
+                formatDate(
+                    project.createdAt
                 )
-            )
-        }
+            }"
 
-        context
-            .getSharedPreferences(
-                PREFS_NAME,
-                Context.MODE_PRIVATE
-            )
-            .edit()
-            .putString(
-                KEY_PROJECTS,
-                array.toString()
-            )
-            .apply()
+        val operationType =
+            when (
+                project.adjustmentType
+            ) {
+
+                "add" ->
+                    "زيادة"
+
+                else ->
+                    "تنقيص"
+            }
+
+        b.adjustmentText.text =
+            buildString {
+
+                append(
+                    "الإجراء: "
+                )
+
+                append(
+                    operationType
+                )
+
+                if (
+                    project.lengthAdjustment != 0.0 ||
+                    project.widthAdjustment != 0.0
+                ) {
+
+                    append(
+                        " | الطول: "
+                    )
+
+                    append(
+                        formatter.format(
+                            project.lengthAdjustment
+                        )
+                    )
+
+                    append(
+                        " | العرض: "
+                    )
+
+                    append(
+                        formatter.format(
+                            project.widthAdjustment
+                        )
+                    )
+                }
+            }
+
+        b.notesText.text =
+            if (
+                project.notes
+                    .isBlank()
+            ) {
+
+                "لا توجد ملاحظات"
+
+            } else {
+
+                project.notes
+            }
     }
 
     // =====================================================
-    // تحويل المشروع إلى JSON
+    // عرض جميع العمليات
     // =====================================================
 
-    private fun projectToJson(
+    private fun showMeasurements(
         project: SavedProject
-    ): JSONObject {
+    ) {
 
-        val objectValue =
-            JSONObject()
+        clearOldRows()
 
-        objectValue.put(
-            "id",
-            project.id
-        )
+        var originalTotalArea =
+            0.0
 
-        objectValue.put(
-            "projectName",
-            project.projectName
-        )
+        var adjustedTotalArea =
+            0.0
 
-        objectValue.put(
-            "customerName",
-            project.customerName
-        )
+        project.measurements
+            .sortedBy {
+                it.operationNumber
+            }
+            .forEachIndexed {
+                    index,
+                    item ->
 
-        objectValue.put(
-            "notes",
-            project.notes
-        )
+                val operationNumber =
+                    if (
+                        item.operationNumber > 0
+                    ) {
 
-        objectValue.put(
-            "createdAt",
-            project.createdAt
-        )
+                        item.operationNumber
 
-        objectValue.put(
-            "adjustmentType",
-            project.adjustmentType
-        )
+                    } else {
 
-        objectValue.put(
-            "lengthAdjustment",
-            project.lengthAdjustment
-        )
+                        index + 1
+                    }
 
-        objectValue.put(
-            "widthAdjustment",
-            project.widthAdjustment
-        )
+                val originalArea =
+                    calculateArea(
+                        length = item.length,
+                        width = item.width,
+                        quantity = item.quantity,
+                        unit = item.unit
+                    )
 
-        val measurementsArray =
-            JSONArray()
+                val adjustedArea =
+                    calculateArea(
+                        length =
+                            item.adjustedLength,
+                        width =
+                            item.adjustedWidth,
+                        quantity =
+                            item.quantity,
+                        unit =
+                            item.unit
+                    )
 
-        for (
-            item in
-            project.measurements
-        ) {
+                originalTotalArea +=
+                    originalArea
 
-            val measurementObject =
-                JSONObject()
+                adjustedTotalArea +=
+                    adjustedArea
 
-            measurementObject.put(
-                "operationNumber",
-                item.operationNumber
-            )
+                addMeasurementRow(
+                    operationNumber =
+                        operationNumber,
 
-            measurementObject.put(
-                "length",
-                item.length
-            )
-
-            measurementObject.put(
-                "width",
-                item.width
-            )
-
-            measurementObject.put(
-                "quantity",
-                item.quantity
-            )
-
-            measurementObject.put(
-                "unit",
-                item.unit
-            )
-
-            measurementObject.put(
-                "adjustedLength",
-                item.adjustedLength
-            )
-
-            measurementObject.put(
-                "adjustedWidth",
-                item.adjustedWidth
-            )
-
-            measurementsArray.put(
-                measurementObject
-            )
-        }
-
-        objectValue.put(
-            "measurements",
-            measurementsArray
-        )
-
-        return objectValue
-    }
-
-    // =====================================================
-    // تحويل JSON إلى مشروع
-    // =====================================================
-
-    private fun jsonToProject(
-        objectValue: JSONObject
-    ): SavedProject {
-
-        val measurements =
-            mutableListOf<MeasurementItem>()
-
-        val measurementsArray =
-            objectValue.optJSONArray(
-                "measurements"
-            ) ?: JSONArray()
-
-        for (
-            index in
-            0 until measurementsArray.length()
-        ) {
-
-            val measurementObject =
-                measurementsArray
-                    .getJSONObject(index)
-
-            val operationNumber =
-                measurementObject.optInt(
-                    "operationNumber",
-                    index + 1
-                )
-
-            measurements.add(
-                MeasurementItem(
                     length =
-                        measurementObject
-                            .optDouble(
-                                "length",
-                                0.0
-                            ),
+                        item.length,
 
                     width =
-                        measurementObject
-                            .optDouble(
-                                "width",
-                                0.0
-                            ),
+                        item.width,
 
                     quantity =
-                        measurementObject
-                            .optInt(
-                                "quantity",
-                                1
-                            ),
+                        item.quantity,
+
+                    area =
+                        originalArea,
 
                     unit =
-                        measurementObject
-                            .optString(
-                                "unit",
-                                "سم"
-                            ),
+                        item.unit,
 
-                    adjustedLength =
-                        measurementObject
-                            .optDouble(
-                                "adjustedLength",
-                                measurementObject
-                                    .optDouble(
-                                        "length",
-                                        0.0
-                                    )
-                            ),
-
-                    adjustedWidth =
-                        measurementObject
-                            .optDouble(
-                                "adjustedWidth",
-                                measurementObject
-                                    .optDouble(
-                                        "width",
-                                        0.0
-                                    )
-                            ),
-
-                    operationNumber =
-                        operationNumber
+                    adjusted =
+                        false
                 )
+
+                addMeasurementRow(
+                    operationNumber =
+                        operationNumber,
+
+                    length =
+                        item.adjustedLength,
+
+                    width =
+                        item.adjustedWidth,
+
+                    quantity =
+                        item.quantity,
+
+                    area =
+                        adjustedArea,
+
+                    unit =
+                        item.unit,
+
+                    adjusted =
+                        true
+                )
+            }
+
+        b.originalTotalText.text =
+            "إجمالي الأصلي: ${
+                formatter.format(
+                    originalTotalArea
+                )
+            } م²"
+
+        b.adjustedTotalText.text =
+            "إجمالي المعدل: ${
+                formatter.format(
+                    adjustedTotalArea
+                )
+            } م²"
+    }
+
+    // =====================================================
+    // إضافة صف إلى الجدول
+    // =====================================================
+
+    private fun addMeasurementRow(
+        operationNumber: Int,
+        length: Double,
+        width: Double,
+        quantity: Int,
+        area: Double,
+        unit: String,
+        adjusted: Boolean
+    ) {
+
+        val row =
+            TableRow(this)
+
+        row.setBackgroundColor(
+            Color.WHITE
+        )
+
+        row.addView(
+            createTableCell(
+                convertToArabicNumbers(
+                    operationNumber
+                        .toString()
+                ),
+                bold = true
+            )
+        )
+
+        row.addView(
+            createTableCell(
+                "${
+                    formatter.format(
+                        length
+                    )
+                } $unit"
+            )
+        )
+
+        row.addView(
+            createTableCell(
+                "${
+                    formatter.format(
+                        width
+                    )
+                } $unit"
+            )
+        )
+
+        row.addView(
+            createTableCell(
+                convertToArabicNumbers(
+                    quantity
+                        .toString()
+                )
+            )
+        )
+
+        row.addView(
+            createTableCell(
+                formatter.format(
+                    area
+                )
+            )
+        )
+
+        if (adjusted) {
+
+            b.adjustedTable.addView(
+                row
+            )
+
+        } else {
+
+            b.originalTable.addView(
+                row
+            )
+        }
+    }
+
+    // =====================================================
+    // إنشاء خلية
+    // =====================================================
+
+    private fun createTableCell(
+        value: String,
+        bold: Boolean = false
+    ): TextView {
+
+        return TextView(this).apply {
+
+            text =
+                value
+
+            textSize =
+                15f
+
+            gravity =
+                Gravity.CENTER
+
+            setPadding(
+                16,
+                16,
+                16,
+                16
+            )
+
+            minWidth =
+                90
+
+            setTextColor(
+                Color.parseColor(
+                    "#222222"
+                )
+            )
+
+            if (bold) {
+
+                setTypeface(
+                    typeface,
+                    Typeface.BOLD
+                )
+
+                setTextColor(
+                    Color.parseColor(
+                        "#0B2341"
+                    )
+                )
+            }
+        }
+    }
+
+    // =====================================================
+    // حذف الصفوف القديمة
+    // مع إبقاء صف العناوين
+    // =====================================================
+
+    private fun clearOldRows() {
+
+        if (
+            b.originalTable.childCount > 1
+        ) {
+
+            b.originalTable.removeViews(
+                1,
+                b.originalTable.childCount - 1
             )
         }
 
-        return SavedProject(
+        if (
+            b.adjustedTable.childCount > 1
+        ) {
 
-            id =
-                objectValue.optLong(
-                    "id",
-                    System.currentTimeMillis()
-                ),
+            b.adjustedTable.removeViews(
+                1,
+                b.adjustedTable.childCount - 1
+            )
+        }
+    }
 
-            projectName =
-                objectValue.optString(
-                    "projectName",
-                    "مشروع"
-                ),
+    // =====================================================
+    // حساب المساحة
+    // =====================================================
 
-            customerName =
-                objectValue.optString(
-                    "customerName",
-                    ""
-                ),
+    private fun calculateArea(
+        length: Double,
+        width: Double,
+        quantity: Int,
+        unit: String
+    ): Double {
 
-            notes =
-                objectValue.optString(
-                    "notes",
-                    ""
-                ),
+        val lengthMeters =
+            convertToMeters(
+                length,
+                unit
+            )
 
-            createdAt =
-                objectValue.optLong(
-                    "createdAt",
-                    System.currentTimeMillis()
-                ),
+        val widthMeters =
+            convertToMeters(
+                width,
+                unit
+            )
 
-            adjustmentType =
-                objectValue.optString(
-                    "adjustmentType",
-                    "subtract"
-                ),
+        return lengthMeters *
+            widthMeters *
+            quantity
+    }
 
-            lengthAdjustment =
-                objectValue.optDouble(
-                    "lengthAdjustment",
-                    0.0
-                ),
+    // =====================================================
+    // تحويل إلى متر
+    // =====================================================
 
-            widthAdjustment =
-                objectValue.optDouble(
-                    "widthAdjustment",
-                    0.0
-                ),
+    private fun convertToMeters(
+        value: Double,
+        unit: String
+    ): Double {
 
-            measurements =
-                measurements
+        return when (unit) {
+
+            "مم" ->
+                value / 1000.0
+
+            "سم" ->
+                value / 100.0
+
+            else ->
+                value
+        }
+    }
+
+    // =====================================================
+    // حذف المشروع
+    // =====================================================
+
+    private fun showDeleteProjectDialog() {
+
+        val project =
+            currentProject
+                ?: return
+
+        AlertDialog.Builder(this)
+
+            .setTitle(
+                "حذف المشروع"
+            )
+
+            .setMessage(
+                "هل تريد حذف مشروع \"${project.projectName}\" وجميع عملياته؟"
+            )
+
+            .setNegativeButton(
+                "إلغاء",
+                null
+            )
+
+            .setPositiveButton(
+                "حذف"
+            ) { _, _ ->
+
+                deleteProject(
+                    project.id
+                )
+            }
+
+            .show()
+    }
+
+    private fun deleteProject(
+        id: Long
+    ) {
+
+        val deleted =
+            ProjectStorage.deleteProject(
+                this,
+                id
+            )
+
+        if (deleted) {
+
+            Toast.makeText(
+                this,
+                "تم حذف المشروع",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            finish()
+
+        } else {
+
+            Toast.makeText(
+                this,
+                "تعذر حذف المشروع",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    // =====================================================
+    // تنسيق التاريخ
+    // =====================================================
+
+    private fun formatDate(
+        value: Long
+    ): String {
+
+        val formatter =
+            SimpleDateFormat(
+                "yyyy/MM/dd - HH:mm",
+                Locale.getDefault()
+            )
+
+        return formatter.format(
+            Date(value)
         )
+    }
+
+    // =====================================================
+    // تحويل الأرقام إلى العربية
+    // 1 -> ١
+    // =====================================================
+
+    private fun convertToArabicNumbers(
+        value: String
+    ): String {
+
+        return value
+            .replace(
+                '0',
+                '٠'
+            )
+            .replace(
+                '1',
+                '١'
+            )
+            .replace(
+                '2',
+                '٢'
+            )
+            .replace(
+                '3',
+                '٣'
+            )
+            .replace(
+                '4',
+                '٤'
+            )
+            .replace(
+                '5',
+                '٥'
+            )
+            .replace(
+                '6',
+                '٦'
+            )
+            .replace(
+                '7',
+                '٧'
+            )
+            .replace(
+                '8',
+                '٨'
+            )
+            .replace(
+                '9',
+                '٩'
+            )
     }
 }
