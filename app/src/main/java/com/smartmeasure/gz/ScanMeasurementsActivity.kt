@@ -2,7 +2,6 @@ package com.smartmeasure.gz
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
@@ -13,10 +12,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.smartmeasure.gz.databinding.ActivityScanMeasurementsBinding
+import java.io.File
 import java.text.DecimalFormat
 
 class ScanMeasurementsActivity : AppCompatActivity() {
@@ -29,13 +30,16 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     private val formatter =
         DecimalFormat("#.##")
 
+    private var cameraImageUri: Uri? =
+        null
+
     private val recognizer =
         TextRecognition.getClient(
             TextRecognizerOptions.DEFAULT_OPTIONS
         )
 
     // =====================================================
-    // اختيار صورة من الهاتف
+    // اختيار صورة من المعرض
     // =====================================================
 
     private val imagePicker =
@@ -45,7 +49,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             if (uri != null) {
 
-                b.previewImage.setImageURI(uri)
+                b.previewImage.setImageURI(
+                    uri
+                )
 
                 readImageFromUri(
                     uri
@@ -54,28 +60,39 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
     // =====================================================
-    // التصوير بالكاميرا
+    // تصوير صورة كاملة الجودة
     // =====================================================
 
     private val cameraLauncher =
         registerForActivityResult(
-            ActivityResultContracts.TakePicturePreview()
-        ) { bitmap ->
+            ActivityResultContracts.TakePicture()
+        ) { success ->
 
-            if (bitmap != null) {
+            if (success) {
 
-                b.previewImage.setImageBitmap(
-                    bitmap
-                )
+                val uri =
+                    cameraImageUri
 
-                readImageFromBitmap(
-                    bitmap
-                )
+                if (uri != null) {
+
+                    b.previewImage.setImageURI(
+                        uri
+                    )
+
+                    readImageFromUri(
+                        uri
+                    )
+                }
+
+            } else {
+
+                b.statusText.text =
+                    "تم إلغاء التصوير"
             }
         }
 
     // =====================================================
-    // صلاحية الكاميرا
+    // طلب صلاحية الكاميرا
     // =====================================================
 
     private val cameraPermissionLauncher =
@@ -85,9 +102,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             if (granted) {
 
-                cameraLauncher.launch(
-                    null
-                )
+                launchFullResolutionCamera()
 
             } else {
 
@@ -98,6 +113,10 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 ).show()
             }
         }
+
+    // =====================================================
+    // بداية الشاشة
+    // =====================================================
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -144,7 +163,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // مصدر الصورة
+    // اختيار مصدر الصورة
     // =====================================================
 
     private fun showImageSourceDialog() {
@@ -199,9 +218,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         ) {
 
-            cameraLauncher.launch(
-                null
-            )
+            launchFullResolutionCamera()
 
         } else {
 
@@ -212,7 +229,59 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // قراءة صورة من الهاتف
+    // إنشاء ملف الصورة ثم فتح الكاميرا
+    // =====================================================
+
+    private fun launchFullResolutionCamera() {
+
+        try {
+
+            val cameraDirectory =
+                File(
+                    cacheDir,
+                    "camera"
+                )
+
+            if (
+                !cameraDirectory.exists()
+            ) {
+
+                cameraDirectory.mkdirs()
+            }
+
+            val imageFile =
+                File.createTempFile(
+                    "smart_measure_",
+                    ".jpg",
+                    cameraDirectory
+                )
+
+            cameraImageUri =
+                FileProvider.getUriForFile(
+                    this,
+                    "${packageName}.fileprovider",
+                    imageFile
+                )
+
+            cameraLauncher.launch(
+                cameraImageUri
+            )
+
+        } catch (e: Exception) {
+
+            b.statusText.text =
+                "تعذر فتح الكاميرا"
+
+            Toast.makeText(
+                this,
+                "حدث خطأ أثناء تجهيز صورة الكاميرا",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    // =====================================================
+    // قراءة الصورة
     // =====================================================
 
     private fun readImageFromUri(
@@ -231,30 +300,17 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 image
             )
 
-        } catch (_: Exception) {
+        } catch (e: Exception) {
 
             b.statusText.text =
                 "حدث خطأ أثناء فتح الصورة"
+
+            Toast.makeText(
+                this,
+                "تعذر تجهيز الصورة للقراءة",
+                Toast.LENGTH_LONG
+            ).show()
         }
-    }
-
-    // =====================================================
-    // قراءة صورة من الكاميرا
-    // =====================================================
-
-    private fun readImageFromBitmap(
-        bitmap: Bitmap
-    ) {
-
-        val image =
-            InputImage.fromBitmap(
-                bitmap,
-                0
-            )
-
-        processImage(
-            image
-        )
     }
 
     // =====================================================
@@ -269,7 +325,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             "جاري قراءة ورقة المقاسات..."
 
         recognizer
-            .process(image)
+            .process(
+                image
+            )
 
             .addOnSuccessListener { result ->
 
@@ -288,14 +346,14 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this,
-                    "تأكد من وضوح الصورة وحاول مرة أخرى",
+                    "حاول تصوير الورقة بشكل مستقيم وبإضاءة واضحة",
                     Toast.LENGTH_LONG
                 ).show()
             }
     }
 
     // =====================================================
-    // استخراج المقاسات
+    // استخراج المقاسات من النص
     // =====================================================
 
     private fun parseMeasurements(
@@ -313,18 +371,22 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             normalized
                 .lines()
                 .map {
-                    cleanLine(it)
+                    cleanLine(
+                        it
+                    )
                 }
                 .filter {
                     it.isNotBlank()
                 }
 
         // =================================================
-        // المحاولة الأولى:
-        // قراءة كل سطر على أنه عملية مستقلة
+        // نحاول قراءة كل سطر كمقاس مستقل
         // =================================================
 
-        for (line in lines) {
+        for (
+            line in
+            lines
+        ) {
 
             parseLine(
                 line
@@ -332,11 +394,12 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         // =================================================
-        // المحاولة الثانية:
-        // إذا لم نجد شيئاً نحاول قراءة النص كاملاً
+        // إذا فشل تقسيم الأسطر نحاول النص كاملاً
         // =================================================
 
-        if (measurements.isEmpty()) {
+        if (
+            measurements.isEmpty()
+        ) {
 
             parseWholeText(
                 normalized
@@ -344,7 +407,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         // =================================================
-        // إعطاء أرقام ثابتة للعمليات
+        // ترقيم العمليات ١، ٢، ٣...
         // =================================================
 
         measurements.forEachIndexed {
@@ -378,7 +441,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تنظيف السطر
+    // تنظيف النص
     // =====================================================
 
     private fun cleanLine(
@@ -387,13 +450,34 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         return value
             .lowercase()
-            .replace("×", "x")
-            .replace("х", "x")
-            .replace("X", "x")
-            .replace("*", "x")
-            .replace("✕", "x")
-            .replace("✖", "x")
-            .replace("ـ", " ")
+            .replace(
+                "×",
+                "x"
+            )
+            .replace(
+                "х",
+                "x"
+            )
+            .replace(
+                "X",
+                "x"
+            )
+            .replace(
+                "*",
+                "x"
+            )
+            .replace(
+                "✕",
+                "x"
+            )
+            .replace(
+                "✖",
+                "x"
+            )
+            .replace(
+                "ـ",
+                " "
+            )
             .replace(
                 Regex("\\s+"),
                 " "
@@ -415,17 +499,15 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             )
 
         // =================================================
-        // الطريقة 1
-        // مثال:
+        // 120 × 80
         // 120 x 80
-        // 120×80
         // 120 * 80
         // 120 x 80 عدد 2
         // =================================================
 
         val explicitPattern =
             Regex(
-                """(\d+(?:\.\d+)?)\s*[x]\s*(\d+(?:\.\d+)?)(?:.*?(?:عدد|qty|quantity|pcs|piece)\s*[:=]?\s*(\d+))?"""
+                """(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)(?:.*?(?:عدد|qty|quantity|pcs|piece)\s*[:=]?\s*(\d+))?"""
             )
 
         val explicitMatch =
@@ -433,7 +515,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 line
             )
 
-        if (explicitMatch != null) {
+        if (
+            explicitMatch != null
+        ) {
 
             val length =
                 explicitMatch
@@ -459,20 +543,20 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     ?: 1
 
             addMeasurement(
-                length = length,
-                width = width,
-                quantity = quantity
+                length =
+                    length,
+
+                width =
+                    width,
+
+                quantity =
+                    quantity
             )
 
             return
         }
 
         // =================================================
-        // الطريقة 2
-        // المقاسات المكتوبة بدون علامة ×
-        //
-        // مثال:
-        // 120 80
         // 120 - 80
         // 120 / 80
         // 120 : 80
@@ -488,7 +572,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 line
             )
 
-        if (separatedMatch != null) {
+        if (
+            separatedMatch != null
+        ) {
 
             val length =
                 separatedMatch
@@ -511,30 +597,35 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     ?: 1
 
             addMeasurement(
-                length = length,
-                width = width,
-                quantity = quantity
+                length =
+                    length,
+
+                width =
+                    width,
+
+                quantity =
+                    quantity
             )
 
             return
         }
 
         // =================================================
-        // الطريقة 3
-        // خط اليد قد يجعل OCR يرى:
-        //
+        // مثال OCR:
         // 120 80
-        //
-        // بدون أي علامة بينهما
+        // بدون علامة ×
         // =================================================
 
         val numbers =
             Regex(
                 """\d+(?:\.\d+)?"""
             )
-                .findAll(line)
+                .findAll(
+                    line
+                )
                 .mapNotNull {
-                    it.value.toDoubleOrNull()
+                    it.value
+                        .toDoubleOrNull()
                 }
                 .toList()
 
@@ -557,12 +648,8 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         // =================================================
-        // ثلاثة أرقام:
-        // الأول طول
-        // الثاني عرض
-        // الثالث عدد
-        //
-        // فقط إذا كان العدد منطقياً
+        // 120 80 2
+        // طول - عرض - عدد
         // =================================================
 
         if (
@@ -594,7 +681,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // محاولة قراءة النص كله
+    // البحث داخل النص كاملاً
     // =====================================================
 
     private fun parseWholeText(
@@ -608,7 +695,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         val pattern =
             Regex(
-                """(\d+(?:\.\d+)?)\s*[x]\s*(\d+(?:\.\d+)?)"""
+                """(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)"""
             )
 
         val matches =
@@ -616,7 +703,10 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 text
             )
 
-        for (match in matches) {
+        for (
+            match in
+            matches
+        ) {
 
             val length =
                 match
@@ -644,7 +734,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إضافة المقاس
+    // إضافة عملية للقائمة
     // =====================================================
 
     private fun addMeasurement(
@@ -662,8 +752,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             return
         }
 
-        // نتجنب النتائج الصغيرة جداً التي غالباً
-        // تكون تاريخاً أو رقماً لا علاقة له بالمقاس
+        // نتجنب أرقام صغيرة غالباً ليست مقاسات
         if (
             length < 5 ||
             width < 5
@@ -672,7 +761,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             return
         }
 
-        val newOperationNumber =
+        val operationNumber =
             if (
                 measurements.isEmpty()
             ) {
@@ -708,13 +797,13 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     width,
 
                 operationNumber =
-                    newOperationNumber
+                    operationNumber
             )
         )
     }
 
     // =====================================================
-    // تحويل الأرقام العربية إلى الإنجليزية
+    // تحويل الأرقام العربية والفارسية
     // =====================================================
 
     private fun normalizeNumbers(
@@ -723,7 +812,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         return text
 
-            // العربية
             .replace('٠', '0')
             .replace('١', '1')
             .replace('٢', '2')
@@ -735,7 +823,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             .replace('٨', '8')
             .replace('٩', '9')
 
-            // الفارسية
             .replace('۰', '0')
             .replace('۱', '1')
             .replace('۲', '2')
@@ -747,13 +834,14 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             .replace('۸', '8')
             .replace('۹', '9')
 
-            // الفاصلة العشرية
-            .replace('٫', '.')
-            .replace(',', '.')
+            .replace(
+                '٫',
+                '.'
+            )
     }
 
     // =====================================================
-    // تطبيق تعديل على جميع العمليات
+    // تطبيق التعديل على جميع العمليات
     // =====================================================
 
     private fun applyAdjustmentToAll() {
@@ -882,17 +970,20 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     private fun saveProject() {
 
         val projectName =
-            b.projectNameInput.text
+            b.projectNameInput
+                .text
                 .toString()
                 .trim()
 
         val customerName =
-            b.customerNameInput.text
+            b.customerNameInput
+                .text
                 .toString()
                 .trim()
 
         val notes =
-            b.notesInput.text
+            b.notesInput
+                .text
                 .toString()
                 .trim()
 
@@ -1040,7 +1131,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // عرض الجداول
+    // عرض المقاسات في الجدولين
     // =====================================================
 
     private fun renderTables() {
@@ -1069,11 +1160,14 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         var adjustedTotal =
             0.0
 
-        for (
-            item in
+        val sortedMeasurements =
             measurements.sortedBy {
                 it.operationNumber
             }
+
+        for (
+            item in
+            sortedMeasurements
         ) {
 
             val originalArea =
@@ -1152,6 +1246,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
     // =====================================================
     // حساب المساحة
+    // الوحدة الأساسية الحالية = سم
     // =====================================================
 
     private fun calculateArea(
@@ -1168,7 +1263,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إنشاء صف
+    // إنشاء صف في الجدول
     // =====================================================
 
     private fun createRow(
@@ -1255,7 +1350,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تطبيع الأرقام المكتوبة يدوياً
+    // تطبيع الرقم المدخل يدويًا
     // =====================================================
 
     private fun normalizeNumberInput(
@@ -1269,7 +1364,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إظهار الرقم بالعربي
+    // تحويل 1 إلى ١
     // =====================================================
 
     private fun toArabicNumber(
@@ -1278,20 +1373,60 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         return value
             .toString()
-            .replace('0', '٠')
-            .replace('1', '١')
-            .replace('2', '٢')
-            .replace('3', '٣')
-            .replace('4', '٤')
-            .replace('5', '٥')
-            .replace('6', '٦')
-            .replace('7', '٧')
-            .replace('8', '٨')
-            .replace('9', '٩')
+
+            .replace(
+                '0',
+                '٠'
+            )
+
+            .replace(
+                '1',
+                '١'
+            )
+
+            .replace(
+                '2',
+                '٢'
+            )
+
+            .replace(
+                '3',
+                '٣'
+            )
+
+            .replace(
+                '4',
+                '٤'
+            )
+
+            .replace(
+                '5',
+                '٥'
+            )
+
+            .replace(
+                '6',
+                '٦'
+            )
+
+            .replace(
+                '7',
+                '٧'
+            )
+
+            .replace(
+                '8',
+                '٨'
+            )
+
+            .replace(
+                '9',
+                '٩'
+            )
     }
 
     // =====================================================
-    // إغلاق قارئ النص
+    // إغلاق ML Kit
     // =====================================================
 
     override fun onDestroy() {
