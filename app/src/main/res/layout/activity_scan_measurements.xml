@@ -65,7 +65,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="📷 تصوير أو اختيار ورقة المقاسات"
-            android:textSize="17sp" />
+            android:textSize="17sp"
+            android:textAllCaps="false" />
 
         <ImageView
             android:id="@+id/previewImage"
@@ -108,6 +109,60 @@
             android:textSize="14sp"
             android:textIsSelectable="true" />
 
+        <!-- ================================================= -->
+        <!-- مراجعة وتصحيح العمليات -->
+        <!-- ================================================= -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="center"
+            android:text="مراجعة وتصحيح العمليات"
+            android:textColor="#0B2341"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center"
+            android:text="يمكنك تصحيح أي رقم لم تتم قراءته بشكل صحيح"
+            android:textColor="#666666"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/operationsCountText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="عدد العمليات: ٠"
+            android:textColor="#B8860B"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/operationsEditorContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/addManualMeasurementBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp"
+            android:text="➕ إضافة عملية يدويًا"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
+        <!-- ================================================= -->
+        <!-- المقاسات الأصلية -->
+        <!-- ================================================= -->
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -116,7 +171,7 @@
             android:textStyle="bold"
             android:textColor="#0B2341"
             android:gravity="center"
-            android:paddingTop="20dp"
+            android:paddingTop="24dp"
             android:paddingBottom="8dp" />
 
         <HorizontalScrollView
@@ -184,6 +239,10 @@
             android:gravity="center"
             android:padding="12dp" />
 
+        <!-- ================================================= -->
+        <!-- التعديل الجماعي -->
+        <!-- ================================================= -->
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -241,6 +300,7 @@
             android:layout_height="wrap_content"
             android:text="تطبيق على جميع المقاسات"
             android:textSize="17sp"
+            android:textAllCaps="false"
             android:layout_marginTop="10dp" />
 
         <Button
@@ -248,7 +308,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="إلغاء التعديل وإرجاع الأصل"
+            android:textAllCaps="false"
             android:layout_marginTop="6dp" />
+
+        <!-- ================================================= -->
+        <!-- بعد التعديل -->
+        <!-- ================================================= -->
 
         <TextView
             android:layout_width="match_parent"
