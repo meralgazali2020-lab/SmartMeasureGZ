@@ -72,13 +72,7 @@ class CalculatorActivity : AppCompatActivity() {
 
         } else {
 
-            b.quantityInput.setText(
-                "1"
-            )
-
-            updateOperationNumber()
-            refreshOperationsList()
-            focusLengthInput()
+            checkForSavedDraft()
         }
     }
 
@@ -124,6 +118,7 @@ class CalculatorActivity : AppCompatActivity() {
         b.applyAdjustmentBtn.setOnClickListener {
 
             applyAdjustment()
+            saveAutomaticDraft()
         }
 
         b.addOperationBtn.setOnClickListener {
@@ -165,6 +160,220 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
+    // فحص وجود مسودة قديمة
+    // =====================================================
+
+    private fun checkForSavedDraft() {
+
+        if (
+            !ProjectDraftStorage.hasDraft(
+                this
+            )
+        ) {
+
+            startEmptyProject()
+            return
+        }
+
+        val draft =
+            ProjectDraftStorage.getDraft(
+                this
+            )
+
+        if (
+            draft == null ||
+            draft.measurements.isEmpty()
+        ) {
+
+            ProjectDraftStorage.clearDraft(
+                this
+            )
+
+            startEmptyProject()
+            return
+        }
+
+        AlertDialog.Builder(this)
+
+            .setTitle(
+                "عمل سابق غير مكتمل"
+            )
+
+            .setMessage(
+                "يوجد مشروع سابق يحتوي على ${
+                    toArabicNumber(
+                        draft.measurements.size
+                    )
+                } عملية.\n\nهل تريد متابعة العمل السابق؟"
+            )
+
+            .setNegativeButton(
+                "مشروع جديد"
+            ) { _, _ ->
+
+                ProjectDraftStorage.clearDraft(
+                    this
+                )
+
+                startEmptyProject()
+            }
+
+            .setPositiveButton(
+                "متابعة العمل السابق"
+            ) { _, _ ->
+
+                loadDraft(
+                    draft
+                )
+            }
+
+            .setCancelable(
+                false
+            )
+
+            .show()
+    }
+
+    // =====================================================
+    // بدء مشروع فارغ
+    // =====================================================
+
+    private fun startEmptyProject() {
+
+        operations.clear()
+
+        nextOperationNumber =
+            1
+
+        editingProjectId =
+            -1L
+
+        originalCreatedAt =
+            0L
+
+        b.quantityInput.setText(
+            "1"
+        )
+
+        updateOperationNumber()
+        refreshOperationsList()
+        focusLengthInput()
+    }
+
+    // =====================================================
+    // تحميل المسودة
+    // =====================================================
+
+    private fun loadDraft(
+        draft: SavedProject
+    ) {
+
+        editingProjectId =
+            -1L
+
+        originalCreatedAt =
+            draft.createdAt
+
+        b.projectNameInput.setText(
+            draft.projectName
+        )
+
+        b.customerNameInput.setText(
+            draft.customerName
+        )
+
+        b.projectNotesInput.setText(
+            draft.notes
+        )
+
+        b.lengthAdjustmentInput.setText(
+            if (
+                draft.lengthAdjustment == 0.0
+            ) {
+                ""
+            } else {
+                formatter.format(
+                    draft.lengthAdjustment
+                )
+            }
+        )
+
+        b.widthAdjustmentInput.setText(
+            if (
+                draft.widthAdjustment == 0.0
+            ) {
+                ""
+            } else {
+                formatter.format(
+                    draft.widthAdjustment
+                )
+            }
+        )
+
+        if (
+            draft.adjustmentType == "add"
+        ) {
+
+            b.addRadio.isChecked =
+                true
+
+        } else {
+
+            b.subtractRadio.isChecked =
+                true
+        }
+
+        operations.clear()
+
+        draft.measurements
+            .forEachIndexed {
+                    index,
+                    item ->
+
+                operations.add(
+                    item.copy(
+                        operationNumber =
+                            if (
+                                item.operationNumber > 0
+                            ) {
+                                item.operationNumber
+                            } else {
+                                index + 1
+                            }
+                    )
+                )
+            }
+
+        nextOperationNumber =
+            if (
+                operations.isEmpty()
+            ) {
+
+                1
+
+            } else {
+
+                operations.maxOf {
+                    it.operationNumber
+                } + 1
+            }
+
+        b.quantityInput.setText(
+            "1"
+        )
+
+        updateOperationNumber()
+        refreshOperationsList()
+        focusLengthInput()
+
+        Toast.makeText(
+            this,
+            "تم استرجاع العمل السابق",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    // =====================================================
     // تحميل مشروع محفوظ
     // =====================================================
 
@@ -192,13 +401,7 @@ class CalculatorActivity : AppCompatActivity() {
             editingProjectId =
                 -1L
 
-            b.quantityInput.setText(
-                "1"
-            )
-
-            updateOperationNumber()
-            refreshOperationsList()
-            focusLengthInput()
+            startEmptyProject()
 
             return
         }
@@ -310,6 +513,8 @@ class CalculatorActivity : AppCompatActivity() {
         refreshOperationsList()
         focusLengthInput()
 
+        saveAutomaticDraft()
+
         Toast.makeText(
             this,
             "تم فتح المشروع للمتابعة",
@@ -318,7 +523,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حساب المقاس الحالي
+    // حساب المقاس
     // =====================================================
 
     private fun calculateMeasurement(): Boolean {
@@ -509,7 +714,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إضافة عملية جديدة
+    // إضافة عملية
     // =====================================================
 
     private fun addCurrentOperation() {
@@ -628,6 +833,8 @@ class CalculatorActivity : AppCompatActivity() {
         updateOperationNumber()
         refreshOperationsList()
 
+        saveAutomaticDraft()
+
         clearCurrentOperationFields(
             keepAdjustments = true
         )
@@ -708,7 +915,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // رقم العملية التالية
+    // رقم العملية
     // =====================================================
 
     private fun updateOperationNumber() {
@@ -916,51 +1123,6 @@ class CalculatorActivity : AppCompatActivity() {
             adjusted
         )
 
-        val originalArea =
-            calculateArea(
-                item.length,
-                item.width,
-                item.quantity,
-                item.unit
-            )
-
-        val adjustedArea =
-            calculateArea(
-                item.adjustedLength,
-                item.adjustedWidth,
-                item.quantity,
-                item.unit
-            )
-
-        val areaText =
-            TextView(this).apply {
-
-                text =
-                    "المساحة الأصلية: ${
-                        formatter.format(
-                            originalArea
-                        )
-                    } م² | المعدلة: ${
-                        formatter.format(
-                            adjustedArea
-                        )
-                    } م²"
-
-                textSize =
-                    14f
-
-                setPadding(
-                    0,
-                    8,
-                    0,
-                    8
-                )
-            }
-
-        container.addView(
-            areaText
-        )
-
         val deleteButton =
             Button(this).apply {
 
@@ -1027,13 +1189,100 @@ class CalculatorActivity : AppCompatActivity() {
                 )
 
                 refreshOperationsList()
+
+                saveAutomaticDraft()
             }
 
             .show()
     }
 
     // =====================================================
-    // حفظ أو تحديث المشروع
+    // الحفظ التلقائي
+    // =====================================================
+
+    private fun saveAutomaticDraft() {
+
+        if (
+            operations.isEmpty()
+        ) {
+
+            ProjectDraftStorage.clearDraft(
+                this
+            )
+
+            return
+        }
+
+        val draft =
+            SavedProject(
+                id =
+                    if (
+                        editingProjectId != -1L
+                    ) {
+                        editingProjectId
+                    } else {
+                        System.currentTimeMillis()
+                    },
+
+                projectName =
+                    b.projectNameInput.text
+                        .toString()
+                        .trim(),
+
+                customerName =
+                    b.customerNameInput.text
+                        .toString()
+                        .trim(),
+
+                notes =
+                    b.projectNotesInput.text
+                        .toString()
+                        .trim(),
+
+                createdAt =
+                    if (
+                        originalCreatedAt > 0L
+                    ) {
+                        originalCreatedAt
+                    } else {
+                        System.currentTimeMillis()
+                    },
+
+                adjustmentType =
+                    if (
+                        b.subtractRadio.isChecked
+                    ) {
+                        "subtract"
+                    } else {
+                        "add"
+                    },
+
+                lengthAdjustment =
+                    normalizedDouble(
+                        b.lengthAdjustmentInput.text
+                            .toString()
+                    ) ?: 0.0,
+
+                widthAdjustment =
+                    normalizedDouble(
+                        b.widthAdjustmentInput.text
+                            .toString()
+                    ) ?: 0.0,
+
+                measurements =
+                    operations.map {
+                        it.copy()
+                    }
+            )
+
+        ProjectDraftStorage.saveDraft(
+            this,
+            draft
+        )
+    }
+
+    // =====================================================
+    // حفظ المشروع النهائي
     // =====================================================
 
     private fun saveCurrentProject() {
@@ -1070,11 +1319,8 @@ class CalculatorActivity : AppCompatActivity() {
                     if (
                         editingProjectId != -1L
                     ) {
-
                         editingProjectId
-
                     } else {
-
                         System.currentTimeMillis()
                     },
 
@@ -1095,11 +1341,8 @@ class CalculatorActivity : AppCompatActivity() {
                     if (
                         originalCreatedAt > 0L
                     ) {
-
                         originalCreatedAt
-
                     } else {
-
                         System.currentTimeMillis()
                     },
 
@@ -1107,11 +1350,8 @@ class CalculatorActivity : AppCompatActivity() {
                     if (
                         b.subtractRadio.isChecked
                     ) {
-
                         "subtract"
-
                     } else {
-
                         "add"
                     },
 
@@ -1163,6 +1403,10 @@ class CalculatorActivity : AppCompatActivity() {
 
             b.projectNameInput.setText(
                 projectName
+            )
+
+            ProjectDraftStorage.clearDraft(
+                this
             )
 
             Toast.makeText(
@@ -1229,6 +1473,10 @@ class CalculatorActivity : AppCompatActivity() {
         originalCreatedAt =
             0L
 
+        ProjectDraftStorage.clearDraft(
+            this
+        )
+
         b.projectNameInput.text?.clear()
         b.customerNameInput.text?.clear()
         b.projectNotesInput.text?.clear()
@@ -1240,10 +1488,16 @@ class CalculatorActivity : AppCompatActivity() {
         updateOperationNumber()
         refreshOperationsList()
         focusLengthInput()
+
+        Toast.makeText(
+            this,
+            "تم فتح مشروع جديد",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     // =====================================================
-    // مسح حقول العملية الحالية
+    // مسح العملية الحالية
     // =====================================================
 
     private fun clearCurrentOperationFields(
@@ -1254,7 +1508,6 @@ class CalculatorActivity : AppCompatActivity() {
 
         b.widthInput.text?.clear()
 
-        // العدد يعود تلقائيًا إلى 1
         b.quantityInput.setText(
             "1"
         )
@@ -1290,7 +1543,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // المؤشر مباشرة على الطول
+    // التركيز على الطول
     // =====================================================
 
     private fun focusLengthInput() {
@@ -1299,9 +1552,7 @@ class CalculatorActivity : AppCompatActivity() {
 
         b.lengthInput.postDelayed(
             {
-
                 showKeyboard()
-
             },
             150
         )
@@ -1321,7 +1572,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حساب المساحة
+    // المساحة
     // =====================================================
 
     private fun calculateArea(
@@ -1361,7 +1612,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // قراءة الأرقام
+    // الأرقام
     // =====================================================
 
     private fun normalizedDouble(
@@ -1416,7 +1667,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // اسم تلقائي للمشروع
+    // اسم تلقائي
     // =====================================================
 
     private fun createAutomaticProjectName(): String {
@@ -1433,7 +1684,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // الأرقام العربية للعرض
+    // تحويل الرقم للعربي
     // =====================================================
 
     private fun toArabicNumber(
@@ -1452,5 +1703,16 @@ class CalculatorActivity : AppCompatActivity() {
             .replace('7', '٧')
             .replace('8', '٨')
             .replace('9', '٩')
+    }
+
+    // =====================================================
+    // حفظ المسودة عند مغادرة الشاشة
+    // =====================================================
+
+    override fun onPause() {
+
+        super.onPause()
+
+        saveAutomaticDraft()
     }
 }
