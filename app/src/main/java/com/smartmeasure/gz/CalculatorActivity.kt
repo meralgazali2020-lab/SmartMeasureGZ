@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
@@ -72,6 +74,7 @@ class CalculatorActivity : AppCompatActivity() {
 
             updateOperationNumber()
             refreshOperationsList()
+            focusLengthInput()
         }
     }
 
@@ -104,7 +107,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إعداد الأزرار
+    // الأزرار
     // =====================================================
 
     private fun setupButtons() {
@@ -122,6 +125,11 @@ class CalculatorActivity : AppCompatActivity() {
         b.addOperationBtn.setOnClickListener {
 
             addCurrentOperation()
+        }
+
+        b.repeatLastOperationBtn.setOnClickListener {
+
+            repeatLastOperation()
         }
 
         b.saveProjectBtn.setOnClickListener {
@@ -147,6 +155,8 @@ class CalculatorActivity : AppCompatActivity() {
         b.clearBtn.setOnClickListener {
 
             clearCurrentOperationFields()
+
+            focusLengthInput()
         }
     }
 
@@ -180,6 +190,7 @@ class CalculatorActivity : AppCompatActivity() {
 
             updateOperationNumber()
             refreshOperationsList()
+            focusLengthInput()
 
             return
         }
@@ -285,6 +296,7 @@ class CalculatorActivity : AppCompatActivity() {
 
         updateOperationNumber()
         refreshOperationsList()
+        focusLengthInput()
 
         Toast.makeText(
             this,
@@ -560,16 +572,10 @@ class CalculatorActivity : AppCompatActivity() {
             adjustedWidth <= 0
         ) {
 
-            Toast.makeText(
-                this,
-                "المقاس المعدل غير صحيح",
-                Toast.LENGTH_SHORT
-            ).show()
-
             return
         }
 
-        val item =
+        operations.add(
             MeasurementItem(
                 length =
                     length,
@@ -593,9 +599,6 @@ class CalculatorActivity : AppCompatActivity() {
                 operationNumber =
                     nextOperationNumber
             )
-
-        operations.add(
-            item
         )
 
         Toast.makeText(
@@ -616,10 +619,84 @@ class CalculatorActivity : AppCompatActivity() {
         clearCurrentOperationFields(
             keepAdjustments = true
         )
+
+        focusLengthInput()
     }
 
     // =====================================================
-    // رقم العملية الحالية
+    // تكرار العملية السابقة
+    // =====================================================
+
+    private fun repeatLastOperation() {
+
+        val lastOperation =
+            operations.maxByOrNull {
+                it.operationNumber
+            }
+
+        if (
+            lastOperation == null
+        ) {
+
+            Toast.makeText(
+                this,
+                "لا توجد عملية سابقة لتكرارها",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        b.lengthInput.setText(
+            formatter.format(
+                lastOperation.length
+            )
+        )
+
+        b.widthInput.setText(
+            formatter.format(
+                lastOperation.width
+            )
+        )
+
+        b.quantityInput.setText(
+            lastOperation.quantity
+                .toString()
+        )
+
+        val unitPosition =
+            when (
+                lastOperation.unit
+            ) {
+
+                "مم" ->
+                    1
+
+                "متر" ->
+                    2
+
+                else ->
+                    0
+            }
+
+        b.unitSpinner.setSelection(
+            unitPosition
+        )
+
+        calculateMeasurement()
+
+        b.lengthInput.requestFocus()
+
+        b.lengthInput.setSelection(
+            b.lengthInput.text
+                .length
+        )
+
+        showKeyboard()
+    }
+
+    // =====================================================
+    // رقم العملية التالية
     // =====================================================
 
     private fun updateOperationNumber() {
@@ -696,7 +773,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // بطاقة كل عملية
+    // بطاقة العملية
     // =====================================================
 
     private fun addOperationCard(
@@ -903,7 +980,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حذف عملية محددة
+    // حذف عملية
     // =====================================================
 
     private fun confirmDeleteOperation(
@@ -911,11 +988,9 @@ class CalculatorActivity : AppCompatActivity() {
     ) {
 
         AlertDialog.Builder(this)
-
             .setTitle(
                 "حذف العملية"
             )
-
             .setMessage(
                 "هل تريد حذف العملية ${
                     toArabicNumber(
@@ -923,12 +998,10 @@ class CalculatorActivity : AppCompatActivity() {
                     )
                 }؟\nلن تتغير أرقام العمليات الأخرى."
             )
-
             .setNegativeButton(
                 "إلغاء",
                 null
             )
-
             .setPositiveButton(
                 "حذف"
             ) { _, _ ->
@@ -938,18 +1011,7 @@ class CalculatorActivity : AppCompatActivity() {
                 )
 
                 refreshOperationsList()
-
-                Toast.makeText(
-                    this,
-                    "تم حذف العملية ${
-                        toArabicNumber(
-                            item.operationNumber
-                        )
-                    }",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
-
             .show()
     }
 
@@ -985,40 +1047,6 @@ class CalculatorActivity : AppCompatActivity() {
                 createAutomaticProjectName()
         }
 
-        val customerName =
-            b.customerNameInput.text
-                .toString()
-                .trim()
-
-        val notes =
-            b.projectNotesInput.text
-                .toString()
-                .trim()
-
-        val lengthAdjustment =
-            normalizedDouble(
-                b.lengthAdjustmentInput.text
-                    .toString()
-            ) ?: 0.0
-
-        val widthAdjustment =
-            normalizedDouble(
-                b.widthAdjustmentInput.text
-                    .toString()
-            ) ?: 0.0
-
-        val adjustmentType =
-            if (
-                b.subtractRadio.isChecked
-            ) {
-
-                "subtract"
-
-            } else {
-
-                "add"
-            }
-
         val project =
             SavedProject(
                 id =
@@ -1037,10 +1065,14 @@ class CalculatorActivity : AppCompatActivity() {
                     projectName,
 
                 customerName =
-                    customerName,
+                    b.customerNameInput.text
+                        .toString()
+                        .trim(),
 
                 notes =
-                    notes,
+                    b.projectNotesInput.text
+                        .toString()
+                        .trim(),
 
                 createdAt =
                     if (
@@ -1055,13 +1087,28 @@ class CalculatorActivity : AppCompatActivity() {
                     },
 
                 adjustmentType =
-                    adjustmentType,
+                    if (
+                        b.subtractRadio.isChecked
+                    ) {
+
+                        "subtract"
+
+                    } else {
+
+                        "add"
+                    },
 
                 lengthAdjustment =
-                    lengthAdjustment,
+                    normalizedDouble(
+                        b.lengthAdjustmentInput.text
+                            .toString()
+                    ) ?: 0.0,
 
                 widthAdjustment =
-                    widthAdjustment,
+                    normalizedDouble(
+                        b.widthAdjustmentInput.text
+                            .toString()
+                    ) ?: 0.0,
 
                 measurements =
                     operations.map {
@@ -1128,33 +1175,24 @@ class CalculatorActivity : AppCompatActivity() {
     private fun requestNewProject() {
 
         AlertDialog.Builder(this)
-
             .setTitle(
                 "مشروع جديد"
             )
-
             .setMessage(
                 "هل تريد بدء مشروع جديد؟ تأكد من حفظ المشروع الحالي أولًا."
             )
-
             .setNegativeButton(
                 "إلغاء",
                 null
             )
-
             .setPositiveButton(
                 "مشروع جديد"
             ) { _, _ ->
 
                 resetEntireProject()
             }
-
             .show()
     }
-
-    // =====================================================
-    // إعادة المشروع من البداية
-    // =====================================================
 
     private fun resetEntireProject() {
 
@@ -1179,16 +1217,11 @@ class CalculatorActivity : AppCompatActivity() {
 
         updateOperationNumber()
         refreshOperationsList()
-
-        Toast.makeText(
-            this,
-            "تم فتح مشروع جديد",
-            Toast.LENGTH_SHORT
-        ).show()
+        focusLengthInput()
     }
 
     // =====================================================
-    // مسح حقول العملية الحالية فقط
+    // مسح العملية الحالية
     // =====================================================
 
     private fun clearCurrentOperationFields(
@@ -1230,6 +1263,35 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
+    // تركيز المؤشر على الطول
+    // =====================================================
+
+    private fun focusLengthInput() {
+
+        b.lengthInput.requestFocus()
+
+        b.lengthInput.postDelayed(
+            {
+                showKeyboard()
+            },
+            150
+        )
+    }
+
+    private fun showKeyboard() {
+
+        val manager =
+            getSystemService(
+                Context.INPUT_METHOD_SERVICE
+            ) as InputMethodManager
+
+        manager.showSoftInput(
+            b.lengthInput,
+            InputMethodManager.SHOW_IMPLICIT
+        )
+    }
+
+    // =====================================================
     // حساب المساحة
     // =====================================================
 
@@ -1251,10 +1313,6 @@ class CalculatorActivity : AppCompatActivity() {
             quantity
     }
 
-    // =====================================================
-    // تحويل للمتر
-    // =====================================================
-
     private fun convertToMeters(
         value: Double,
         unit: String
@@ -1274,7 +1332,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // قراءة رقم عشري
+    // قراءة الأرقام
     // =====================================================
 
     private fun normalizedDouble(
@@ -1288,10 +1346,6 @@ class CalculatorActivity : AppCompatActivity() {
             .toDoubleOrNull()
     }
 
-    // =====================================================
-    // قراءة عدد صحيح
-    // =====================================================
-
     private fun normalizedInt(
         value: String
     ): Int? {
@@ -1302,10 +1356,6 @@ class CalculatorActivity : AppCompatActivity() {
             .trim()
             .toIntOrNull()
     }
-
-    // =====================================================
-    // دعم الأرقام العربية والفارسية
-    // =====================================================
 
     private fun normalizeNumbers(
         value: String
@@ -1337,7 +1387,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // اسم مشروع تلقائي
+    // اسم تلقائي
     // =====================================================
 
     private fun createAutomaticProjectName(): String {
@@ -1354,7 +1404,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تحويل الأرقام للعرض العربي
+    // أرقام عربية
     // =====================================================
 
     private fun toArabicNumber(
