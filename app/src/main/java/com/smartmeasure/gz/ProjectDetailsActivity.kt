@@ -1,5 +1,6 @@
 package com.smartmeasure.gz
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -75,10 +76,41 @@ class ProjectDetailsActivity : AppCompatActivity() {
 
     private fun setupButtons() {
 
+        b.continueProjectBtn.setOnClickListener {
+
+            continueProject()
+        }
+
         b.deleteProjectBtn.setOnClickListener {
 
             showDeleteProjectDialog()
         }
+    }
+
+    // =====================================================
+    // متابعة وتعديل المشروع
+    // =====================================================
+
+    private fun continueProject() {
+
+        val project =
+            currentProject
+                ?: return
+
+        val intent =
+            Intent(
+                this,
+                CalculatorActivity::class.java
+            )
+
+        intent.putExtra(
+            "projectId",
+            project.id
+        )
+
+        startActivity(
+            intent
+        )
     }
 
     // =====================================================
@@ -644,7 +676,6 @@ class ProjectDetailsActivity : AppCompatActivity() {
 
     // =====================================================
     // تحويل الأرقام إلى العربية
-    // 1 -> ١
     // =====================================================
 
     private fun convertToArabicNumbers(
@@ -652,45 +683,15 @@ class ProjectDetailsActivity : AppCompatActivity() {
     ): String {
 
         return value
-            .replace(
-                '0',
-                '٠'
-            )
-            .replace(
-                '1',
-                '١'
-            )
-            .replace(
-                '2',
-                '٢'
-            )
-            .replace(
-                '3',
-                '٣'
-            )
-            .replace(
-                '4',
-                '٤'
-            )
-            .replace(
-                '5',
-                '٥'
-            )
-            .replace(
-                '6',
-                '٦'
-            )
-            .replace(
-                '7',
-                '٧'
-            )
-            .replace(
-                '8',
-                '٨'
-            )
-            .replace(
-                '9',
-                '٩'
-            )
+            .replace('0', '٠')
+            .replace('1', '١')
+            .replace('2', '٢')
+            .replace('3', '٣')
+            .replace('4', '٤')
+            .replace('5', '٥')
+            .replace('6', '٦')
+            .replace('7', '٧')
+            .replace('8', '٨')
+            .replace('9', '٩')
     }
 }
