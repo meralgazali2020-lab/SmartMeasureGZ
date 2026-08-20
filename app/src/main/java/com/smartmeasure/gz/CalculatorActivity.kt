@@ -1,12 +1,12 @@
 package com.smartmeasure.gz
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
 import android.view.inputmethod.InputMethodManager
-import android.content.Context
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
@@ -71,6 +71,10 @@ class CalculatorActivity : AppCompatActivity() {
             )
 
         } else {
+
+            b.quantityInput.setText(
+                "1"
+            )
 
             updateOperationNumber()
             refreshOperationsList()
@@ -188,6 +192,10 @@ class CalculatorActivity : AppCompatActivity() {
             editingProjectId =
                 -1L
 
+            b.quantityInput.setText(
+                "1"
+            )
+
             updateOperationNumber()
             refreshOperationsList()
             focusLengthInput()
@@ -293,6 +301,10 @@ class CalculatorActivity : AppCompatActivity() {
                     it.operationNumber
                 } + 1
             }
+
+        b.quantityInput.setText(
+            "1"
+        )
 
         updateOperationNumber()
         refreshOperationsList()
@@ -988,9 +1000,11 @@ class CalculatorActivity : AppCompatActivity() {
     ) {
 
         AlertDialog.Builder(this)
+
             .setTitle(
                 "حذف العملية"
             )
+
             .setMessage(
                 "هل تريد حذف العملية ${
                     toArabicNumber(
@@ -998,10 +1012,12 @@ class CalculatorActivity : AppCompatActivity() {
                     )
                 }؟\nلن تتغير أرقام العمليات الأخرى."
             )
+
             .setNegativeButton(
                 "إلغاء",
                 null
             )
+
             .setPositiveButton(
                 "حذف"
             ) { _, _ ->
@@ -1012,6 +1028,7 @@ class CalculatorActivity : AppCompatActivity() {
 
                 refreshOperationsList()
             }
+
             .show()
     }
 
@@ -1175,22 +1192,27 @@ class CalculatorActivity : AppCompatActivity() {
     private fun requestNewProject() {
 
         AlertDialog.Builder(this)
+
             .setTitle(
                 "مشروع جديد"
             )
+
             .setMessage(
                 "هل تريد بدء مشروع جديد؟ تأكد من حفظ المشروع الحالي أولًا."
             )
+
             .setNegativeButton(
                 "إلغاء",
                 null
             )
+
             .setPositiveButton(
                 "مشروع جديد"
             ) { _, _ ->
 
                 resetEntireProject()
             }
+
             .show()
     }
 
@@ -1221,7 +1243,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // مسح العملية الحالية
+    // مسح حقول العملية الحالية
     // =====================================================
 
     private fun clearCurrentOperationFields(
@@ -1229,8 +1251,13 @@ class CalculatorActivity : AppCompatActivity() {
     ) {
 
         b.lengthInput.text?.clear()
+
         b.widthInput.text?.clear()
-        b.quantityInput.text?.clear()
+
+        // العدد يعود تلقائيًا إلى 1
+        b.quantityInput.setText(
+            "1"
+        )
 
         if (
             !keepAdjustments
@@ -1263,7 +1290,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تركيز المؤشر على الطول
+    // المؤشر مباشرة على الطول
     // =====================================================
 
     private fun focusLengthInput() {
@@ -1272,7 +1299,9 @@ class CalculatorActivity : AppCompatActivity() {
 
         b.lengthInput.postDelayed(
             {
+
                 showKeyboard()
+
             },
             150
         )
@@ -1387,7 +1416,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // اسم تلقائي
+    // اسم تلقائي للمشروع
     // =====================================================
 
     private fun createAutomaticProjectName(): String {
@@ -1404,7 +1433,7 @@ class CalculatorActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // أرقام عربية
+    // الأرقام العربية للعرض
     // =====================================================
 
     private fun toArabicNumber(
