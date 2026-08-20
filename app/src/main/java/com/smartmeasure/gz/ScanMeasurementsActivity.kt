@@ -2,9 +2,15 @@ package com.smartmeasure.gz
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
@@ -70,10 +76,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             if (success) {
 
-                val uri =
-                    cameraImageUri
-
-                if (uri != null) {
+                cameraImageUri?.let { uri ->
 
                     b.previewImage.setImageURI(
                         uri
@@ -92,7 +95,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
     // =====================================================
-    // طلب صلاحية الكاميرا
+    // صلاحية الكاميرا
     // =====================================================
 
     private val cameraPermissionLauncher =
@@ -133,6 +136,8 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         )
 
         setupButtons()
+
+        renderAll()
     }
 
     // =====================================================
@@ -144,6 +149,11 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         b.selectImageBtn.setOnClickListener {
 
             showImageSourceDialog()
+        }
+
+        b.addManualMeasurementBtn.setOnClickListener {
+
+            showAddManualMeasurementDialog()
         }
 
         b.applyAllBtn.setOnClickListener {
@@ -163,7 +173,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // اختيار مصدر الصورة
+    // مصدر الصورة
     // =====================================================
 
     private fun showImageSourceDialog() {
@@ -175,11 +185,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             )
 
         AlertDialog.Builder(this)
-
             .setTitle(
                 "قراءة ورقة المقاسات"
             )
-
             .setItems(
                 options
             ) { _, which ->
@@ -195,12 +203,10 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                         )
                 }
             }
-
             .setNegativeButton(
                 "إلغاء",
                 null
             )
-
             .show()
     }
 
@@ -229,7 +235,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إنشاء ملف الصورة ثم فتح الكاميرا
+    // كاميرا عالية الدقة
     // =====================================================
 
     private fun launchFullResolutionCamera() {
@@ -267,21 +273,18 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 cameraImageUri
             )
 
-        } catch (e: Exception) {
-
-            b.statusText.text =
-                "تعذر فتح الكاميرا"
+        } catch (_: Exception) {
 
             Toast.makeText(
                 this,
-                "حدث خطأ أثناء تجهيز صورة الكاميرا",
+                "تعذر فتح الكاميرا",
                 Toast.LENGTH_LONG
             ).show()
         }
     }
 
     // =====================================================
-    // قراءة الصورة
+    // فتح الصورة
     // =====================================================
 
     private fun readImageFromUri(
@@ -300,21 +303,15 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 image
             )
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
 
             b.statusText.text =
                 "حدث خطأ أثناء فتح الصورة"
-
-            Toast.makeText(
-                this,
-                "تعذر تجهيز الصورة للقراءة",
-                Toast.LENGTH_LONG
-            ).show()
         }
     }
 
     // =====================================================
-    // OCR
+    // قراءة OCR
     // =====================================================
 
     private fun processImage(
@@ -328,7 +325,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             .process(
                 image
             )
-
             .addOnSuccessListener { result ->
 
                 b.recognizedText.text =
@@ -338,7 +334,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     result.text
                 )
             }
-
             .addOnFailureListener {
 
                 b.statusText.text =
@@ -346,14 +341,14 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
                 Toast.makeText(
                     this,
-                    "حاول تصوير الورقة بشكل مستقيم وبإضاءة واضحة",
+                    "حاول تصوير الورقة بوضوح وبشكل مستقيم",
                     Toast.LENGTH_LONG
                 ).show()
             }
     }
 
     // =====================================================
-    // استخراج المقاسات من النص
+    // تحليل النص
     // =====================================================
 
     private fun parseMeasurements(
@@ -379,23 +374,12 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     it.isNotBlank()
                 }
 
-        // =================================================
-        // نحاول قراءة كل سطر كمقاس مستقل
-        // =================================================
-
-        for (
-            line in
-            lines
-        ) {
+        for (line in lines) {
 
             parseLine(
                 line
             )
         }
-
-        // =================================================
-        // إذا فشل تقسيم الأسطر نحاول النص كاملاً
-        // =================================================
 
         if (
             measurements.isEmpty()
@@ -405,10 +389,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 normalized
             )
         }
-
-        // =================================================
-        // ترقيم العمليات ١، ٢، ٣...
-        // =================================================
 
         measurements.forEachIndexed {
                 index,
@@ -425,23 +405,21 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             b.statusText.text =
                 "لم يتم العثور على مقاسات واضحة"
 
-            renderTables()
+        } else {
 
-            return
+            b.statusText.text =
+                "تم العثور على ${
+                    toArabicNumber(
+                        measurements.size
+                    )
+                } عملية - راجع المقاسات قبل الحفظ"
         }
 
-        b.statusText.text =
-            "تم العثور على ${
-                toArabicNumber(
-                    measurements.size
-                )
-            } عملية"
-
-        renderTables()
+        renderAll()
     }
 
     // =====================================================
-    // تنظيف النص
+    // تنظيف السطر
     // =====================================================
 
     private fun cleanLine(
@@ -450,34 +428,13 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         return value
             .lowercase()
-            .replace(
-                "×",
-                "x"
-            )
-            .replace(
-                "х",
-                "x"
-            )
-            .replace(
-                "X",
-                "x"
-            )
-            .replace(
-                "*",
-                "x"
-            )
-            .replace(
-                "✕",
-                "x"
-            )
-            .replace(
-                "✖",
-                "x"
-            )
-            .replace(
-                "ـ",
-                " "
-            )
+            .replace("×", "x")
+            .replace("х", "x")
+            .replace("X", "x")
+            .replace("*", "x")
+            .replace("✕", "x")
+            .replace("✖", "x")
+            .replace("ـ", " ")
             .replace(
                 Regex("\\s+"),
                 " "
@@ -486,7 +443,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // قراءة سطر واحد
+    // تحليل سطر
     // =====================================================
 
     private fun parseLine(
@@ -498,12 +455,8 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 originalLine
             )
 
-        // =================================================
-        // 120 × 80
         // 120 x 80
-        // 120 * 80
         // 120 x 80 عدد 2
-        // =================================================
 
         val explicitPattern =
             Regex(
@@ -531,36 +484,26 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     .toDoubleOrNull()
                     ?: return
 
-            val quantityText =
+            val quantity =
                 explicitMatch
                     .groupValues
                     .getOrNull(3)
                     .orEmpty()
-
-            val quantity =
-                quantityText
                     .toIntOrNull()
                     ?: 1
 
             addMeasurement(
-                length =
-                    length,
-
-                width =
-                    width,
-
-                quantity =
-                    quantity
+                length,
+                width,
+                quantity
             )
 
             return
         }
 
-        // =================================================
         // 120 - 80
         // 120 / 80
         // 120 : 80
-        // =================================================
 
         val separatedPattern =
             Regex(
@@ -597,24 +540,16 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     ?: 1
 
             addMeasurement(
-                length =
-                    length,
-
-                width =
-                    width,
-
-                quantity =
-                    quantity
+                length,
+                width,
+                quantity
             )
 
             return
         }
 
-        // =================================================
-        // مثال OCR:
+        // OCR قد يقرأ:
         // 120 80
-        // بدون علامة ×
-        // =================================================
 
         val numbers =
             Regex(
@@ -634,54 +569,41 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         ) {
 
             addMeasurement(
-                length =
-                    numbers[0],
-
-                width =
-                    numbers[1],
-
-                quantity =
-                    1
+                numbers[0],
+                numbers[1],
+                1
             )
 
             return
         }
 
-        // =================================================
         // 120 80 2
-        // طول - عرض - عدد
-        // =================================================
 
         if (
             numbers.size == 3
         ) {
 
-            val possibleQuantity =
+            val quantity =
                 numbers[2]
                     .toInt()
 
             if (
                 numbers[2] ==
-                possibleQuantity.toDouble() &&
-                possibleQuantity in 1..999
+                quantity.toDouble() &&
+                quantity in 1..999
             ) {
 
                 addMeasurement(
-                    length =
-                        numbers[0],
-
-                    width =
-                        numbers[1],
-
-                    quantity =
-                        possibleQuantity
+                    numbers[0],
+                    numbers[1],
+                    quantity
                 )
             }
         }
     }
 
     // =====================================================
-    // البحث داخل النص كاملاً
+    // تحليل النص كاملاً
     // =====================================================
 
     private fun parseWholeText(
@@ -698,14 +620,9 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 """(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)"""
             )
 
-        val matches =
-            pattern.findAll(
-                text
-            )
-
         for (
             match in
-            matches
+            pattern.findAll(text)
         ) {
 
             val length =
@@ -721,20 +638,15 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     ?: continue
 
             addMeasurement(
-                length =
-                    length,
-
-                width =
-                    width,
-
-                quantity =
-                    1
+                length,
+                width,
+                1
             )
         }
     }
 
     // =====================================================
-    // إضافة عملية للقائمة
+    // إضافة عملية
     // =====================================================
 
     private fun addMeasurement(
@@ -752,7 +664,6 @@ class ScanMeasurementsActivity : AppCompatActivity() {
             return
         }
 
-        // نتجنب أرقام صغيرة غالباً ليست مقاسات
         if (
             length < 5 ||
             width < 5
@@ -762,19 +673,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         val operationNumber =
-            if (
-                measurements.isEmpty()
-            ) {
-
-                1
-
-            } else {
-
-                measurements
-                    .maxOf {
-                        it.operationNumber
-                    } + 1
-            }
+            getNextOperationNumber()
 
         measurements.add(
             MeasurementItem(
@@ -791,10 +690,14 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     "سم",
 
                 adjustedLength =
-                    length,
+                    calculateAdjustedLength(
+                        length
+                    ),
 
                 adjustedWidth =
-                    width,
+                    calculateAdjustedWidth(
+                        width
+                    ),
 
                 operationNumber =
                     operationNumber
@@ -803,45 +706,644 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تحويل الأرقام العربية والفارسية
+    // الرقم التالي
     // =====================================================
 
-    private fun normalizeNumbers(
-        text: String
-    ): String {
+    private fun getNextOperationNumber(): Int {
 
-        return text
+        return if (
+            measurements.isEmpty()
+        ) {
 
-            .replace('٠', '0')
-            .replace('١', '1')
-            .replace('٢', '2')
-            .replace('٣', '3')
-            .replace('٤', '4')
-            .replace('٥', '5')
-            .replace('٦', '6')
-            .replace('٧', '7')
-            .replace('٨', '8')
-            .replace('٩', '9')
+            1
 
-            .replace('۰', '0')
-            .replace('۱', '1')
-            .replace('۲', '2')
-            .replace('۳', '3')
-            .replace('۴', '4')
-            .replace('۵', '5')
-            .replace('۶', '6')
-            .replace('۷', '7')
-            .replace('۸', '8')
-            .replace('۹', '9')
+        } else {
 
-            .replace(
-                '٫',
-                '.'
+            measurements.maxOf {
+                it.operationNumber
+            } + 1
+        }
+    }
+
+    // =====================================================
+    // عرض كل شيء
+    // =====================================================
+
+    private fun renderAll() {
+
+        renderOperationsEditor()
+        renderTables()
+    }
+
+    // =====================================================
+    // قسم مراجعة وتصحيح العمليات
+    // =====================================================
+
+    private fun renderOperationsEditor() {
+
+        b.operationsEditorContainer
+            .removeAllViews()
+
+        b.operationsCountText.text =
+            "عدد العمليات: ${
+                toArabicNumber(
+                    measurements.size
+                )
+            }"
+
+        if (
+            measurements.isEmpty()
+        ) {
+
+            val empty =
+                TextView(this).apply {
+
+                    text =
+                        "لا توجد عمليات حاليًا"
+
+                    gravity =
+                        Gravity.CENTER
+
+                    textSize =
+                        15f
+
+                    setTextColor(
+                        Color.GRAY
+                    )
+
+                    setPadding(
+                        10,
+                        20,
+                        10,
+                        20
+                    )
+                }
+
+            b.operationsEditorContainer
+                .addView(
+                    empty
+                )
+
+            return
+        }
+
+        measurements
+            .sortedBy {
+                it.operationNumber
+            }
+            .forEach { item ->
+
+                addEditorCard(
+                    item
+                )
+            }
+    }
+
+    // =====================================================
+    // بطاقة العملية
+    // =====================================================
+
+    private fun addEditorCard(
+        item: MeasurementItem
+    ) {
+
+        val container =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setBackgroundColor(
+                    Color.WHITE
+                )
+
+                setPadding(
+                    20,
+                    18,
+                    20,
+                    18
+                )
+
+                val params =
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+
+                params.setMargins(
+                    0,
+                    0,
+                    0,
+                    14
+                )
+
+                layoutParams =
+                    params
+            }
+
+        val title =
+            TextView(this).apply {
+
+                text =
+                    "العملية ${
+                        toArabicNumber(
+                            item.operationNumber
+                        )
+                    }"
+
+                textSize =
+                    19f
+
+                setTypeface(
+                    typeface,
+                    Typeface.BOLD
+                )
+
+                setTextColor(
+                    Color.parseColor(
+                        "#0B2341"
+                    )
+                )
+            }
+
+        container.addView(
+            title
+        )
+
+        val measurement =
+            TextView(this).apply {
+
+                text =
+                    "الطول: ${
+                        formatter.format(
+                            item.length
+                        )
+                    } سم   |   العرض: ${
+                        formatter.format(
+                            item.width
+                        )
+                    } سم   |   العدد: ${
+                        toArabicNumber(
+                            item.quantity
+                        )
+                    }"
+
+                textSize =
+                    16f
+
+                setPadding(
+                    0,
+                    10,
+                    0,
+                    10
+                )
+            }
+
+        container.addView(
+            measurement
+        )
+
+        val buttonsRow =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.HORIZONTAL
+            }
+
+        val editButton =
+            Button(this).apply {
+
+                text =
+                    "تعديل"
+
+                isAllCaps =
+                    false
+
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+
+                setOnClickListener {
+
+                    showEditMeasurementDialog(
+                        item
+                    )
+                }
+            }
+
+        val deleteButton =
+            Button(this).apply {
+
+                text =
+                    "حذف"
+
+                isAllCaps =
+                    false
+
+                layoutParams =
+                    LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+
+                setOnClickListener {
+
+                    confirmDeleteMeasurement(
+                        item
+                    )
+                }
+            }
+
+        buttonsRow.addView(
+            editButton
+        )
+
+        buttonsRow.addView(
+            deleteButton
+        )
+
+        container.addView(
+            buttonsRow
+        )
+
+        b.operationsEditorContainer
+            .addView(
+                container
             )
     }
 
     // =====================================================
-    // تطبيق التعديل على جميع العمليات
+    // تعديل عملية
+    // =====================================================
+
+    private fun showEditMeasurementDialog(
+        item: MeasurementItem
+    ) {
+
+        val container =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setPadding(
+                    40,
+                    10,
+                    40,
+                    0
+                )
+            }
+
+        val lengthInput =
+            createNumberInput(
+                "الطول بالسنتيمتر",
+                formatter.format(
+                    item.length
+                )
+            )
+
+        val widthInput =
+            createNumberInput(
+                "العرض بالسنتيمتر",
+                formatter.format(
+                    item.width
+                )
+            )
+
+        val quantityInput =
+            EditText(this).apply {
+
+                hint =
+                    "العدد"
+
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
+
+                setText(
+                    item.quantity
+                        .toString()
+                )
+            }
+
+        container.addView(
+            lengthInput
+        )
+
+        container.addView(
+            widthInput
+        )
+
+        container.addView(
+            quantityInput
+        )
+
+        val dialog =
+            AlertDialog.Builder(this)
+                .setTitle(
+                    "تعديل العملية ${
+                        toArabicNumber(
+                            item.operationNumber
+                        )
+                    }"
+                )
+                .setView(
+                    container
+                )
+                .setNegativeButton(
+                    "إلغاء",
+                    null
+                )
+                .setPositiveButton(
+                    "حفظ",
+                    null
+                )
+                .create()
+
+        dialog.setOnShowListener {
+
+            dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE
+            ).setOnClickListener {
+
+                val length =
+                    normalizedDouble(
+                        lengthInput.text
+                            .toString()
+                    )
+
+                val width =
+                    normalizedDouble(
+                        widthInput.text
+                            .toString()
+                    )
+
+                val quantity =
+                    normalizedInt(
+                        quantityInput.text
+                            .toString()
+                    )
+
+                if (
+                    length == null ||
+                    width == null ||
+                    quantity == null ||
+                    length <= 0 ||
+                    width <= 0 ||
+                    quantity <= 0
+                ) {
+
+                    Toast.makeText(
+                        this,
+                        "أدخل المقاسات والعدد بشكل صحيح",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@setOnClickListener
+                }
+
+                item.length =
+                    length
+
+                item.width =
+                    width
+
+                item.quantity =
+                    quantity
+
+                item.adjustedLength =
+                    calculateAdjustedLength(
+                        length
+                    )
+
+                item.adjustedWidth =
+                    calculateAdjustedWidth(
+                        width
+                    )
+
+                if (
+                    item.adjustedLength <= 0 ||
+                    item.adjustedWidth <= 0
+                ) {
+
+                    item.adjustedLength =
+                        length
+
+                    item.adjustedWidth =
+                        width
+                }
+
+                renderAll()
+
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    // =====================================================
+    // حذف عملية
+    // =====================================================
+
+    private fun confirmDeleteMeasurement(
+        item: MeasurementItem
+    ) {
+
+        AlertDialog.Builder(this)
+            .setTitle(
+                "حذف العملية"
+            )
+            .setMessage(
+                "هل تريد حذف العملية ${
+                    toArabicNumber(
+                        item.operationNumber
+                    )
+                }؟\nلن تتغير أرقام العمليات الأخرى."
+            )
+            .setNegativeButton(
+                "إلغاء",
+                null
+            )
+            .setPositiveButton(
+                "حذف"
+            ) { _, _ ->
+
+                measurements.remove(
+                    item
+                )
+
+                renderAll()
+            }
+            .show()
+    }
+
+    // =====================================================
+    // إضافة عملية يدوياً
+    // =====================================================
+
+    private fun showAddManualMeasurementDialog() {
+
+        val container =
+            LinearLayout(this).apply {
+
+                orientation =
+                    LinearLayout.VERTICAL
+
+                setPadding(
+                    40,
+                    10,
+                    40,
+                    0
+                )
+            }
+
+        val lengthInput =
+            createNumberInput(
+                "الطول بالسنتيمتر",
+                ""
+            )
+
+        val widthInput =
+            createNumberInput(
+                "العرض بالسنتيمتر",
+                ""
+            )
+
+        val quantityInput =
+            EditText(this).apply {
+
+                hint =
+                    "العدد"
+
+                inputType =
+                    InputType.TYPE_CLASS_NUMBER
+
+                setText(
+                    "1"
+                )
+            }
+
+        container.addView(
+            lengthInput
+        )
+
+        container.addView(
+            widthInput
+        )
+
+        container.addView(
+            quantityInput
+        )
+
+        val dialog =
+            AlertDialog.Builder(this)
+                .setTitle(
+                    "إضافة العملية ${
+                        toArabicNumber(
+                            getNextOperationNumber()
+                        )
+                    }"
+                )
+                .setView(
+                    container
+                )
+                .setNegativeButton(
+                    "إلغاء",
+                    null
+                )
+                .setPositiveButton(
+                    "إضافة",
+                    null
+                )
+                .create()
+
+        dialog.setOnShowListener {
+
+            dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE
+            ).setOnClickListener {
+
+                val length =
+                    normalizedDouble(
+                        lengthInput.text
+                            .toString()
+                    )
+
+                val width =
+                    normalizedDouble(
+                        widthInput.text
+                            .toString()
+                    )
+
+                val quantity =
+                    normalizedInt(
+                        quantityInput.text
+                            .toString()
+                    )
+
+                if (
+                    length == null ||
+                    width == null ||
+                    quantity == null ||
+                    length <= 0 ||
+                    width <= 0 ||
+                    quantity <= 0
+                ) {
+
+                    Toast.makeText(
+                        this,
+                        "أدخل الطول والعرض والعدد",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@setOnClickListener
+                }
+
+                addMeasurement(
+                    length,
+                    width,
+                    quantity
+                )
+
+                renderAll()
+
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    // =====================================================
+    // حقل رقمي
+    // =====================================================
+
+    private fun createNumberInput(
+        hintText: String,
+        value: String
+    ): EditText {
+
+        return EditText(this).apply {
+
+            hint =
+                hintText
+
+            inputType =
+                InputType.TYPE_CLASS_NUMBER or
+                InputType.TYPE_NUMBER_FLAG_DECIMAL
+
+            setText(
+                value
+            )
+        }
+    }
+
+    // =====================================================
+    // تطبيق تعديل جماعي
     // =====================================================
 
     private fun applyAdjustmentToAll() {
@@ -860,54 +1362,47 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         }
 
         val lengthAdjustment =
-            normalizeNumberInput(
-                b.lengthAdjustmentInput
-                    .text
-                    .toString()
-            )
-                .toDoubleOrNull()
-                ?: 0.0
+            getLengthAdjustment()
 
         val widthAdjustment =
-            normalizeNumberInput(
-                b.widthAdjustmentInput
-                    .text
-                    .toString()
-            )
-                .toDoubleOrNull()
-                ?: 0.0
+            getWidthAdjustment()
 
         for (
             item in
             measurements
         ) {
 
-            if (
-                b.subtractRadio.isChecked
-            ) {
+            val newLength =
+                if (
+                    b.subtractRadio.isChecked
+                ) {
 
-                item.adjustedLength =
                     item.length -
                         lengthAdjustment
 
-                item.adjustedWidth =
+                } else {
+
+                    item.length +
+                        lengthAdjustment
+                }
+
+            val newWidth =
+                if (
+                    b.subtractRadio.isChecked
+                ) {
+
                     item.width -
                         widthAdjustment
 
-            } else {
+                } else {
 
-                item.adjustedLength =
-                    item.length +
-                        lengthAdjustment
-
-                item.adjustedWidth =
                     item.width +
                         widthAdjustment
-            }
+                }
 
             if (
-                item.adjustedLength <= 0 ||
-                item.adjustedWidth <= 0
+                newLength <= 0 ||
+                newWidth <= 0
             ) {
 
                 Toast.makeText(
@@ -916,26 +1411,51 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG
                 ).show()
 
-                resetAdjustments()
-
                 return
             }
         }
 
-        renderTables()
+        for (
+            item in
+            measurements
+        ) {
+
+            item.adjustedLength =
+                calculateAdjustedLength(
+                    item.length
+                )
+
+            item.adjustedWidth =
+                calculateAdjustedWidth(
+                    item.width
+                )
+        }
+
+        renderAll()
 
         Toast.makeText(
             this,
-            "تم تطبيق التعديل على جميع المقاسات",
+            "تم تطبيق التعديل على جميع العمليات",
             Toast.LENGTH_SHORT
         ).show()
     }
 
     // =====================================================
-    // إعادة المقاسات للأصل
+    // إعادة الأصل
     // =====================================================
 
     private fun resetAdjustments() {
+
+        b.lengthAdjustmentInput
+            .text
+            ?.clear()
+
+        b.widthAdjustmentInput
+            .text
+            ?.clear()
+
+        b.subtractRadio.isChecked =
+            true
 
         for (
             item in
@@ -949,18 +1469,71 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                 item.width
         }
 
-        b.lengthAdjustmentInput
-            .text
-            ?.clear()
+        renderAll()
+    }
 
-        b.widthAdjustmentInput
-            .text
-            ?.clear()
+    // =====================================================
+    // حساب التعديل
+    // =====================================================
 
-        b.subtractRadio.isChecked =
-            true
+    private fun calculateAdjustedLength(
+        original: Double
+    ): Double {
 
-        renderTables()
+        val adjustment =
+            getLengthAdjustment()
+
+        return if (
+            b.subtractRadio.isChecked
+        ) {
+
+            original -
+                adjustment
+
+        } else {
+
+            original +
+                adjustment
+        }
+    }
+
+    private fun calculateAdjustedWidth(
+        original: Double
+    ): Double {
+
+        val adjustment =
+            getWidthAdjustment()
+
+        return if (
+            b.subtractRadio.isChecked
+        ) {
+
+            original -
+                adjustment
+
+        } else {
+
+            original +
+                adjustment
+        }
+    }
+
+    private fun getLengthAdjustment(): Double {
+
+        return normalizedDouble(
+            b.lengthAdjustmentInput
+                .text
+                .toString()
+        ) ?: 0.0
+    }
+
+    private fun getWidthAdjustment(): Double {
+
+        return normalizedDouble(
+            b.widthAdjustmentInput
+                .text
+                .toString()
+        ) ?: 0.0
     }
 
     // =====================================================
@@ -1006,69 +1579,12 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "لا توجد مقاسات لحفظها",
+                "لا توجد عمليات لحفظها",
                 Toast.LENGTH_SHORT
             ).show()
 
             return
         }
-
-        val lengthAdjustment =
-            normalizeNumberInput(
-                b.lengthAdjustmentInput
-                    .text
-                    .toString()
-            )
-                .toDoubleOrNull()
-                ?: 0.0
-
-        val widthAdjustment =
-            normalizeNumberInput(
-                b.widthAdjustmentInput
-                    .text
-                    .toString()
-            )
-                .toDoubleOrNull()
-                ?: 0.0
-
-        val adjustmentType =
-            if (
-                b.subtractRadio.isChecked
-            ) {
-
-                "subtract"
-
-            } else {
-
-                "add"
-            }
-
-        val copiedMeasurements =
-            measurements.map { item ->
-
-                MeasurementItem(
-                    length =
-                        item.length,
-
-                    width =
-                        item.width,
-
-                    quantity =
-                        item.quantity,
-
-                    unit =
-                        item.unit,
-
-                    adjustedLength =
-                        item.adjustedLength,
-
-                    adjustedWidth =
-                        item.adjustedWidth,
-
-                    operationNumber =
-                        item.operationNumber
-                )
-            }
 
         val project =
             SavedProject(
@@ -1088,16 +1604,24 @@ class ScanMeasurementsActivity : AppCompatActivity() {
                     System.currentTimeMillis(),
 
                 adjustmentType =
-                    adjustmentType,
+                    if (
+                        b.subtractRadio.isChecked
+                    ) {
+                        "subtract"
+                    } else {
+                        "add"
+                    },
 
                 lengthAdjustment =
-                    lengthAdjustment,
+                    getLengthAdjustment(),
 
                 widthAdjustment =
-                    widthAdjustment,
+                    getWidthAdjustment(),
 
                 measurements =
-                    copiedMeasurements
+                    measurements.map {
+                        it.copy()
+                    }
             )
 
         val success =
@@ -1131,7 +1655,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // عرض المقاسات في الجدولين
+    // الجداول
     // =====================================================
 
     private fun renderTables() {
@@ -1160,14 +1684,11 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         var adjustedTotal =
             0.0
 
-        val sortedMeasurements =
+        for (
+            item in
             measurements.sortedBy {
                 it.operationNumber
             }
-
-        for (
-            item in
-            sortedMeasurements
         ) {
 
             val originalArea =
@@ -1192,39 +1713,21 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
             b.originalTable.addView(
                 createRow(
-                    number =
-                        item.operationNumber,
-
-                    length =
-                        item.length,
-
-                    width =
-                        item.width,
-
-                    quantity =
-                        item.quantity,
-
-                    area =
-                        originalArea
+                    item.operationNumber,
+                    item.length,
+                    item.width,
+                    item.quantity,
+                    originalArea
                 )
             )
 
             b.adjustedTable.addView(
                 createRow(
-                    number =
-                        item.operationNumber,
-
-                    length =
-                        item.adjustedLength,
-
-                    width =
-                        item.adjustedWidth,
-
-                    quantity =
-                        item.quantity,
-
-                    area =
-                        adjustedArea
+                    item.operationNumber,
+                    item.adjustedLength,
+                    item.adjustedWidth,
+                    item.quantity,
+                    adjustedArea
                 )
             )
         }
@@ -1245,8 +1748,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // حساب المساحة
-    // الوحدة الأساسية الحالية = سم
+    // المساحة
     // =====================================================
 
     private fun calculateArea(
@@ -1263,7 +1765,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // إنشاء صف في الجدول
+    // صف جدول
     // =====================================================
 
     private fun createRow(
@@ -1275,9 +1777,7 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     ): TableRow {
 
         val row =
-            TableRow(
-                this
-            )
+            TableRow(this)
 
         row.addView(
             createCell(
@@ -1322,17 +1822,11 @@ class ScanMeasurementsActivity : AppCompatActivity() {
         return row
     }
 
-    // =====================================================
-    // خلية جدول
-    // =====================================================
-
     private fun createCell(
         value: String
     ): TextView {
 
-        return TextView(
-            this
-        ).apply {
+        return TextView(this).apply {
 
             text =
                 value
@@ -1350,22 +1844,61 @@ class ScanMeasurementsActivity : AppCompatActivity() {
     }
 
     // =====================================================
-    // تطبيع الرقم المدخل يدويًا
+    // الأرقام
     // =====================================================
 
-    private fun normalizeNumberInput(
+    private fun normalizedDouble(
         value: String
-    ): String {
+    ): Double? {
 
         return normalizeNumbers(
             value
         )
             .trim()
+            .toDoubleOrNull()
     }
 
-    // =====================================================
-    // تحويل 1 إلى ١
-    // =====================================================
+    private fun normalizedInt(
+        value: String
+    ): Int? {
+
+        return normalizeNumbers(
+            value
+        )
+            .trim()
+            .toIntOrNull()
+    }
+
+    private fun normalizeNumbers(
+        text: String
+    ): String {
+
+        return text
+            .replace('٠', '0')
+            .replace('١', '1')
+            .replace('٢', '2')
+            .replace('٣', '3')
+            .replace('٤', '4')
+            .replace('٥', '5')
+            .replace('٦', '6')
+            .replace('٧', '7')
+            .replace('٨', '8')
+            .replace('٩', '9')
+
+            .replace('۰', '0')
+            .replace('۱', '1')
+            .replace('۲', '2')
+            .replace('۳', '3')
+            .replace('۴', '4')
+            .replace('۵', '5')
+            .replace('۶', '6')
+            .replace('۷', '7')
+            .replace('۸', '8')
+            .replace('۹', '9')
+
+            .replace('٫', '.')
+            .replace(',', '.')
+    }
 
     private fun toArabicNumber(
         value: Int
@@ -1373,60 +1906,20 @@ class ScanMeasurementsActivity : AppCompatActivity() {
 
         return value
             .toString()
-
-            .replace(
-                '0',
-                '٠'
-            )
-
-            .replace(
-                '1',
-                '١'
-            )
-
-            .replace(
-                '2',
-                '٢'
-            )
-
-            .replace(
-                '3',
-                '٣'
-            )
-
-            .replace(
-                '4',
-                '٤'
-            )
-
-            .replace(
-                '5',
-                '٥'
-            )
-
-            .replace(
-                '6',
-                '٦'
-            )
-
-            .replace(
-                '7',
-                '٧'
-            )
-
-            .replace(
-                '8',
-                '٨'
-            )
-
-            .replace(
-                '9',
-                '٩'
-            )
+            .replace('0', '٠')
+            .replace('1', '١')
+            .replace('2', '٢')
+            .replace('3', '٣')
+            .replace('4', '٤')
+            .replace('5', '٥')
+            .replace('6', '٦')
+            .replace('7', '٧')
+            .replace('8', '٨')
+            .replace('9', '٩')
     }
 
     // =====================================================
-    // إغلاق ML Kit
+    // إغلاق OCR
     // =====================================================
 
     override fun onDestroy() {
