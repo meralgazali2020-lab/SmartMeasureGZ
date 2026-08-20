@@ -26,17 +26,78 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:layout_marginBottom="22dp"
+            android:layout_marginBottom="18dp"
             android:gravity="center"
             android:text="تصميم المهندس حسين الغزالي"
             android:textColor="#B8860B"
             android:textSize="14sp"
             android:textStyle="bold" />
 
+        <!-- ================================================= -->
+        <!-- معلومات المشروع -->
+        <!-- ================================================= -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="معلومات المشروع"
+            android:textColor="#0B2341"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/projectNameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="اسم المشروع"
+            android:inputType="text"
+            android:padding="14dp" />
+
+        <EditText
+            android:id="@+id/customerNameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="اسم الزبون - اختياري"
+            android:inputType="text"
+            android:padding="14dp" />
+
+        <EditText
+            android:id="@+id/projectNotesInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="top"
+            android:hint="ملاحظات المشروع"
+            android:inputType="textMultiLine"
+            android:minHeight="80dp"
+            android:padding="14dp" />
+
+        <!-- ================================================= -->
+        <!-- رقم العملية -->
+        <!-- ================================================= -->
+
+        <TextView
+            android:id="@+id/currentOperationText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="center"
+            android:text="العملية ١"
+            android:textColor="#B8860B"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- ================================================= -->
+        <!-- المقاس -->
+        <!-- ================================================= -->
+
         <EditText
             android:id="@+id/lengthInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:hint="الطول"
             android:inputType="numberDecimal"
             android:padding="14dp" />
@@ -74,11 +135,15 @@
             android:textAllCaps="false"
             android:textSize="17sp" />
 
+        <!-- ================================================= -->
+        <!-- الجدول الأصلي -->
+        <!-- ================================================= -->
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
-            android:text="جدول المقاسات الأصلية"
+            android:text="المقاس الأصلي للعملية الحالية"
             android:textColor="#0B2341"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -134,6 +199,10 @@
             </TableRow>
 
         </TableLayout>
+
+        <!-- ================================================= -->
+        <!-- التعديل -->
+        <!-- ================================================= -->
 
         <TextView
             android:layout_width="match_parent"
@@ -192,11 +261,15 @@
             android:textAllCaps="false"
             android:textSize="17sp" />
 
+        <!-- ================================================= -->
+        <!-- المقاس المعدل -->
+        <!-- ================================================= -->
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
-            android:text="جدول المقاسات بعد التعديل"
+            android:text="المقاس بعد التعديل"
             android:textColor="#0B2341"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -253,13 +326,88 @@
 
         </TableLayout>
 
+        <!-- ================================================= -->
+        <!-- إضافة العملية -->
+        <!-- ================================================= -->
+
+        <Button
+            android:id="@+id/addOperationBtn"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="22dp"
+            android:text="إضافة العملية إلى المشروع"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- ================================================= -->
+        <!-- العمليات المضافة -->
+        <!-- ================================================= -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:text="العمليات المضافة"
+            android:textColor="#0B2341"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/operationsCountText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="عدد العمليات: ٠"
+            android:textColor="#666666"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:id="@+id/operationsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical" />
+
+        <!-- ================================================= -->
+        <!-- الحفظ -->
+        <!-- ================================================= -->
+
+        <Button
+            android:id="@+id/saveProjectBtn"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="25dp"
+            android:text="حفظ المشروع"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/savedProjectsBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp"
+            android:text="المشاريع المحفوظة"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
+        <Button
+            android:id="@+id/newProjectBtn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp"
+            android:text="مشروع جديد"
+            android:textAllCaps="false"
+            android:textSize="17sp" />
+
         <Button
             android:id="@+id/clearBtn"
             android:layout_width="match_parent"
             android:layout_height="55dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="10dp"
             android:layout_marginBottom="25dp"
-            android:text="مسح"
+            android:text="مسح حقول العملية الحالية"
             android:textAllCaps="false"
             android:textSize="17sp" />
 
